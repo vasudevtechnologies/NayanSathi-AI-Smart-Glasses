@@ -813,6 +813,139 @@
     }
     .circuit-image-wrap img { width: 100%; border-radius: 18px; }
 
+    /* ─── 3D MODEL SECTION ────────────────────────────────────────── */
+    #model3d {
+      padding: 120px 0;
+      position: relative;
+      overflow: hidden;
+    }
+    #model3d::before {
+      content: '';
+      position: absolute;
+      top: 50%; left: 50%;
+      transform: translate(-50%, -50%);
+      width: 600px; height: 600px;
+      background: radial-gradient(circle, rgba(0,212,255,0.06) 0%, transparent 70%);
+      pointer-events: none;
+    }
+    .model3d-inner {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 60px;
+      align-items: center;
+    }
+    @media (max-width: 900px) {
+      .model3d-inner { grid-template-columns: 1fr; gap: 40px; }
+    }
+    .model3d-viewer-wrap {
+      position: relative;
+      border-radius: 24px;
+      overflow: hidden;
+      border: 1px solid var(--glass-border);
+      background: var(--glass);
+      aspect-ratio: 4/3;
+      box-shadow: var(--glow-blue);
+    }
+    .model3d-viewer-wrap iframe {
+      width: 100%; height: 100%;
+      border: none;
+      display: block;
+    }
+    .model3d-viewer-overlay {
+      position: absolute;
+      inset: 0;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      background: rgba(4,4,15,0.55);
+      backdrop-filter: blur(2px);
+      cursor: pointer;
+      transition: opacity 0.4s ease;
+      z-index: 2;
+    }
+    .model3d-viewer-overlay.hidden { opacity: 0; pointer-events: none; }
+    .model3d-play-btn {
+      width: 72px; height: 72px;
+      border-radius: 50%;
+      background: linear-gradient(135deg, var(--blue), var(--purple));
+      display: flex; align-items: center; justify-content: center;
+      font-size: 1.8rem;
+      box-shadow: 0 0 30px rgba(0,212,255,0.5);
+      animation: pulse-btn 2s ease-in-out infinite;
+      margin-bottom: 12px;
+    }
+    @keyframes pulse-btn {
+      0%,100% { transform: scale(1); box-shadow: 0 0 30px rgba(0,212,255,0.5); }
+      50% { transform: scale(1.08); box-shadow: 0 0 50px rgba(0,212,255,0.8); }
+    }
+    .model3d-play-text {
+      font-family: 'Orbitron', sans-serif;
+      font-size: 0.75rem;
+      letter-spacing: 2px;
+      color: var(--blue);
+      text-transform: uppercase;
+    }
+    .model3d-preview-img {
+      width: 100%; height: 100%;
+      object-fit: cover;
+      position: absolute;
+      inset: 0;
+      z-index: 1;
+    }
+    .model3d-badge-row {
+      display: flex; flex-wrap: wrap; gap: 10px;
+      margin-bottom: 28px;
+    }
+    .model3d-badge {
+      padding: 5px 14px;
+      border-radius: 20px;
+      font-size: 0.75rem;
+      font-weight: 600;
+      letter-spacing: 0.5px;
+      text-transform: uppercase;
+    }
+    .model3d-badge.glb  { background: rgba(0,212,255,0.12); color: var(--blue); border: 1px solid rgba(0,212,255,0.3); }
+    .model3d-badge.ai   { background: rgba(123,47,255,0.12); color: var(--purple2); border: 1px solid rgba(123,47,255,0.3); }
+    .model3d-badge.pbr  { background: rgba(0,255,170,0.1); color: var(--green); border: 1px solid rgba(0,255,170,0.3); }
+    .model3d-features {
+      display: flex; flex-direction: column; gap: 12px;
+      margin: 28px 0;
+    }
+    .model3d-feat {
+      display: flex; align-items: center; gap: 12px;
+      font-size: 0.88rem; color: var(--text-dim);
+    }
+    .model3d-feat-icon {
+      width: 36px; height: 36px;
+      border-radius: 8px;
+      background: var(--glass);
+      border: 1px solid var(--glass-border);
+      display: flex; align-items: center; justify-content: center;
+      font-size: 1rem;
+      flex-shrink: 0;
+    }
+    .model3d-btn-row {
+      display: flex; gap: 14px; flex-wrap: wrap;
+      margin-top: 32px;
+    }
+    .model3d-hud {
+      position: absolute;
+      bottom: 14px; left: 14px;
+      z-index: 3;
+      display: flex; gap: 8px;
+    }
+    .model3d-hud-tag {
+      padding: 4px 10px;
+      border-radius: 6px;
+      font-family: 'Orbitron', sans-serif;
+      font-size: 0.6rem;
+      letter-spacing: 1px;
+      background: rgba(0,0,0,0.6);
+      border: 1px solid var(--glass-border);
+      color: var(--blue);
+    }
+
     /* ─── FUTURE SCOPE ────────────────────────────────────────  */
     #future {
       padding: 120px 0;
@@ -1434,7 +1567,7 @@
       </div>
       <!-- Node 4 -->
       <div class="arch-node">
-        <div class="arch-icon-wrap">🍓</div>
+        <div class="arch-icon-wrap">💻</div>
         <div class="arch-label">Raspberry Pi 4</div>
         <div class="arch-sublabel">AI Processing</div>
       </div>
@@ -1762,6 +1895,85 @@
         <h3 class="future-title">Voice Command AI</h3>
         <p class="future-desc">OpenAI Whisper (tiny) for offline voice command recognition. Ask the glasses anything — "What's in front of me?" — and get an intelligent spoken response.</p>
         <span class="future-badge planned">Planned</span>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- ═══════════════════════════════════════════════════════════ -->
+<!-- 3D MODEL VIEWER -->
+<!-- ═══════════════════════════════════════════════════════════ -->
+<section id="model3d">
+  <div class="container">
+    <div class="arch-header reveal" style="margin-bottom:60px">
+      <div class="section-label">Interactive 3D Model</div>
+      <h2 class="section-title">NayanSathi <span class="grad">3D Prototype</span></h2>
+      <p class="section-desc" style="margin:0 auto">Explore the full 3D model of NayanSathi — solar-powered smart glasses with exposed electronics, solar panels, and wiring — created with AI.</p>
+    </div>
+    <div class="model3d-inner">
+      <!-- 3D Viewer -->
+      <div class="model3d-viewer-wrap reveal-left" id="model3dWrap">
+        <img
+          class="model3d-preview-img"
+          id="model3dPreview"
+          src="https://tripo-public.tripo3d.ai/studio/project/667ff32d-eba3-4781-bd6a-96d9096c109f/solar-powered-glasses-with-exposed-electronics-solar-panels-wiring.webp"
+          alt="NayanSathi 3D Model Preview"
+        />
+        <div class="model3d-viewer-overlay" id="model3dOverlay" onclick="loadModel3D()">
+          <div class="model3d-play-btn">▶</div>
+          <div class="model3d-play-text">Launch 3D Viewer</div>
+        </div>
+        <div class="model3d-hud">
+          <span class="model3d-hud-tag">PBR</span>
+          <span class="model3d-hud-tag">GLB</span>
+          <span class="model3d-hud-tag">AI GENERATED</span>
+        </div>
+      </div>
+      <!-- Info Panel -->
+      <div class="reveal-right">
+        <div class="model3d-badge-row">
+          <span class="model3d-badge glb">GLB / GLTF</span>
+          <span class="model3d-badge ai">Tripo AI</span>
+          <span class="model3d-badge pbr">PBR Textures</span>
+        </div>
+        <div class="section-label">3D Design</div>
+        <h3 class="section-title" style="font-size:1.8rem">Solar-Powered <span class="grad">Smart Glasses</span></h3>
+        <p class="section-desc" style="margin:0;margin-top:16px">A high-fidelity AI-generated 3D model of the NayanSathi prototype — featuring exposed electronics, solar panel wiring, and realistic PBR materials. Rotate, zoom, and explore every detail.</p>
+        <div class="model3d-features">
+          <div class="model3d-feat">
+            <div class="model3d-feat-icon">☀️</div>
+            <span>Solar panels with exposed wiring and realistic textures</span>
+          </div>
+          <div class="model3d-feat">
+            <div class="model3d-feat-icon">🔌</div>
+            <span>Exposed electronics, PCB, and sensor components visible</span>
+          </div>
+          <div class="model3d-feat">
+            <div class="model3d-feat-icon">🎨</div>
+            <span>Full PBR materials — metallic, roughness & normal maps</span>
+          </div>
+          <div class="model3d-feat">
+            <div class="model3d-feat-icon">🔄</div>
+            <span>360° interactive viewer — drag to rotate, scroll to zoom</span>
+          </div>
+        </div>
+        <div class="model3d-btn-row">
+          <a
+            href="https://studio.tripo3d.ai/3d-model/667ff32d-eba3-4781-bd6a-96d9096c109f?invite_code=tEIbRs"
+            target="_blank"
+            class="btn-primary"
+            id="model3dViewBtn"
+          >
+            🚀 Open Full 3D Viewer
+          </a>
+          <a
+            href="https://studio.tripo3d.ai/3d-model/667ff32d-eba3-4781-bd6a-96d9096c109f?invite_code=tEIbRs"
+            target="_blank"
+            class="btn-secondary"
+          >
+            ⬇️ Download Model
+          </a>
+        </div>
       </div>
     </div>
   </div>
@@ -2116,6 +2328,21 @@ setInterval(() => {
   if (cpuEl) cpuEl.textContent = cpu + '%';
   if (camEl) camEl.textContent = camFps + ' FPS';
 }, 3000);
+
+/* ── 3D MODEL VIEWER ─────────────────────────────────────── */
+function loadModel3D() {
+  const wrap = document.getElementById('model3dWrap');
+  const overlay = document.getElementById('model3dOverlay');
+  const preview = document.getElementById('model3dPreview');
+  overlay.classList.add('hidden');
+  preview.style.transition = 'opacity 0.3s';
+  preview.style.opacity = '0';
+  const iframe = document.createElement('iframe');
+  iframe.src = 'https://studio.tripo3d.ai/3d-model/667ff32d-eba3-4781-bd6a-96d9096c109f?invite_code=tEIbRs';
+  iframe.allow = 'fullscreen';
+  iframe.style.cssText = 'position:absolute;inset:0;width:100%;height:100%;border:none;z-index:5;border-radius:24px;';
+  wrap.appendChild(iframe);
+}
 </script>
 </body>
 </html>
