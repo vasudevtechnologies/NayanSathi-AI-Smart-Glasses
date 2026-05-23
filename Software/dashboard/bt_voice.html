@@ -1,0 +1,539 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width,initial-scale=1" />
+    <title>NayanSathi — Bluetooth Voice</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap"
+        rel="stylesheet" />
+    <style>
+        *,
+        *::before,
+        *::after {
+            box-sizing: border-box;
+            margin: 0;
+            padding: 0;
+        }
+
+        :root {
+            --bg: #0a0e1a;
+            --s1: #111827;
+            --s2: #1a2235;
+            --glow: #6366f1;
+            --gr: #22c55e;
+            --rd: #ef4444;
+            --mu: #6b7280;
+            --tx: #e2e8f0;
+            --tx2: #94a3b8;
+            --bd: rgba(255, 255, 255, .07);
+        }
+
+        body {
+            font-family: 'Inter', sans-serif;
+            background: var(--bg);
+            color: var(--tx);
+            min-height: 100vh;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            padding: 20px;
+        }
+
+        .card {
+            background: var(--s1);
+            border: 1px solid var(--bd);
+            border-radius: 20px;
+            padding: 36px;
+            width: 100%;
+            max-width: 480px;
+            box-shadow: 0 0 60px rgba(99, 102, 241, .12);
+        }
+
+        .logo {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            margin-bottom: 32px;
+        }
+
+        .logo-icon {
+            width: 44px;
+            height: 44px;
+            background: linear-gradient(135deg, #6366f1, #8b5cf6);
+            border-radius: 12px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 22px;
+        }
+
+        .logo h1 {
+            font-size: 1.3rem;
+            font-weight: 700;
+        }
+
+        .logo p {
+            font-size: .72rem;
+            color: var(--mu);
+        }
+
+        /* Status row */
+        .status-row {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            background: var(--s2);
+            border: 1px solid var(--bd);
+            border-radius: 12px;
+            padding: 14px 16px;
+            margin-bottom: 20px;
+        }
+
+        .dot {
+            width: 10px;
+            height: 10px;
+            border-radius: 50%;
+            background: var(--mu);
+            flex-shrink: 0;
+            transition: background .3s;
+        }
+
+        .dot.connected {
+            background: var(--gr);
+            box-shadow: 0 0 8px var(--gr);
+        }
+
+        .dot.error {
+            background: var(--rd);
+        }
+
+        .status-text {
+            font-size: .8rem;
+            color: var(--tx2);
+            flex: 1;
+        }
+
+        .status-label {
+            font-size: .65rem;
+            color: var(--mu);
+        }
+
+        /* Buttons */
+        .btn {
+            width: 100%;
+            padding: 14px;
+            border-radius: 12px;
+            border: none;
+            font-family: 'Inter', sans-serif;
+            font-size: .9rem;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all .2s;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 8px;
+            margin-bottom: 12px;
+        }
+
+        .btn:disabled {
+            opacity: .5;
+            cursor: not-allowed;
+        }
+
+        .btn-primary {
+            background: linear-gradient(135deg, #6366f1, #8b5cf6);
+            color: #fff;
+        }
+
+        .btn-primary:not(:disabled):hover {
+            transform: translateY(-1px);
+            box-shadow: 0 6px 20px rgba(99, 102, 241, .4);
+        }
+
+        .btn-secondary {
+            background: var(--s2);
+            color: var(--tx);
+            border: 1px solid var(--bd);
+        }
+
+        .btn-secondary:not(:disabled):hover {
+            border-color: var(--glow);
+        }
+
+        .btn-green {
+            background: linear-gradient(135deg, #16a34a, #22c55e);
+            color: #fff;
+        }
+
+        .btn-green:not(:disabled):hover {
+            transform: translateY(-1px);
+            box-shadow: 0 6px 20px rgba(34, 197, 94, .35);
+        }
+
+        /* Voice input row */
+        .voice-row {
+            display: flex;
+            gap: 8px;
+            margin-bottom: 12px;
+        }
+
+        .voice-input {
+            flex: 1;
+            background: var(--s2);
+            border: 1px solid var(--bd);
+            border-radius: 10px;
+            padding: 12px 14px;
+            font-family: 'Inter', sans-serif;
+            font-size: .85rem;
+            color: var(--tx);
+            outline: none;
+            transition: border-color .2s;
+        }
+
+        .voice-input:focus {
+            border-color: var(--glow);
+        }
+
+        .voice-input::placeholder {
+            color: var(--mu);
+        }
+
+        .btn-speak {
+            padding: 12px 20px;
+            border-radius: 10px;
+            border: none;
+            background: linear-gradient(135deg, #6366f1, #8b5cf6);
+            color: #fff;
+            font-family: 'Inter', sans-serif;
+            font-size: .85rem;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all .2s;
+            white-space: nowrap;
+            display: flex;
+            align-items: center;
+            gap: 6px;
+        }
+
+        .btn-speak:disabled {
+            opacity: .5;
+            cursor: not-allowed;
+        }
+
+        .btn-speak:not(:disabled):hover {
+            transform: translateY(-1px);
+            box-shadow: 0 4px 14px rgba(99, 102, 241, .4);
+        }
+
+        /* Feedback */
+        .feedback {
+            background: var(--s2);
+            border: 1px solid var(--bd);
+            border-radius: 12px;
+            padding: 14px 16px;
+            margin-bottom: 12px;
+            font-size: .8rem;
+            color: var(--tx2);
+            min-height: 46px;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            transition: all .3s;
+        }
+
+        .feedback.ok {
+            border-color: rgba(34, 197, 94, .4);
+            color: var(--gr);
+        }
+
+        .feedback.err {
+            border-color: rgba(239, 68, 68, .4);
+            color: var(--rd);
+        }
+
+        /* Waveform animation */
+        .wave {
+            display: flex;
+            gap: 3px;
+            align-items: center;
+            height: 24px;
+        }
+
+        .wave span {
+            width: 3px;
+            background: var(--glow);
+            border-radius: 2px;
+            animation: wave .8s ease-in-out infinite;
+        }
+
+        .wave span:nth-child(1) {
+            animation-delay: 0s;
+            height: 8px;
+        }
+
+        .wave span:nth-child(2) {
+            animation-delay: .1s;
+            height: 16px;
+        }
+
+        .wave span:nth-child(3) {
+            animation-delay: .2s;
+            height: 24px;
+        }
+
+        .wave span:nth-child(4) {
+            animation-delay: .3s;
+            height: 16px;
+        }
+
+        .wave span:nth-child(5) {
+            animation-delay: .4s;
+            height: 8px;
+        }
+
+        @keyframes wave {
+
+            0%,
+            100% {
+                transform: scaleY(.4);
+            }
+
+            50% {
+                transform: scaleY(1);
+            }
+        }
+
+        .divider {
+            height: 1px;
+            background: var(--bd);
+            margin: 20px 0;
+        }
+
+        .section-label {
+            font-size: .68rem;
+            color: var(--mu);
+            text-transform: uppercase;
+            letter-spacing: .06em;
+            margin-bottom: 12px;
+        }
+
+        .log {
+            background: #0d1117;
+            border: 1px solid var(--bd);
+            border-radius: 10px;
+            padding: 12px;
+            font-family: 'SF Mono', monospace;
+            font-size: .7rem;
+            color: #4ade80;
+            max-height: 100px;
+            overflow-y: auto;
+            line-height: 1.5;
+        }
+
+        .log .ts {
+            color: var(--mu);
+            margin-right: 6px;
+        }
+    </style>
+</head>
+
+<body>
+    <div class="card">
+        <div class="logo">
+            <div class="logo-icon">🎙</div>
+            <div>
+                <h1>NayanSathi Voice</h1>
+                <p>Bluetooth Audio Control</p>
+            </div>
+        </div>
+
+        <!-- BT Status -->
+        <div class="status-row">
+            <div class="dot" id="btDot"></div>
+            <div style="flex:1">
+                <div class="status-text" id="btStatusText">Not connected</div>
+                <div class="status-label">Airdopes 141 · 8E:79:7D:B3:CD:A6</div>
+            </div>
+            <div style="font-size:1.4rem" id="btIcon">🎧</div>
+        </div>
+
+        <!-- BT Connect -->
+        <button class="btn btn-secondary" id="btBtn" onclick="connectBT()">
+            🎧 Connect Airdopes 141
+        </button>
+
+        <div class="divider"></div>
+
+        <!-- Voice -->
+        <div class="section-label">🎙 Voice Test</div>
+        <div class="voice-row">
+            <input id="voiceInput" class="voice-input" type="text" value="NayanSathi is online"
+                placeholder="Enter text to speak…" />
+            <button class="btn-speak" id="speakBtn" onclick="speak()">🔊 Speak</button>
+        </div>
+
+        <!-- Feedback -->
+        <div class="feedback" id="feedback">
+            <span id="feedIcon">💬</span>
+            <span id="feedText">Ready — click Speak to test voice</span>
+        </div>
+
+        <!-- Quick phrases -->
+        <div class="section-label">Quick Phrases</div>
+        <div style="display:flex;flex-wrap:wrap;gap:6px;margin-bottom:20px">
+            <button class="btn btn-secondary" style="width:auto;padding:7px 14px;font-size:.75rem;margin:0"
+                onclick="setPhrase('NayanSathi is online')">Online</button>
+            <button class="btn btn-secondary" style="width:auto;padding:7px 14px;font-size:.75rem;margin:0"
+                onclick="setPhrase('Object detected ahead')">Object Alert</button>
+            <button class="btn btn-secondary" style="width:auto;padding:7px 14px;font-size:.75rem;margin:0"
+                onclick="setPhrase('Battery level is low')">Battery</button>
+            <button class="btn btn-secondary" style="width:auto;padding:7px 14px;font-size:.75rem;margin:0"
+                onclick="setPhrase('Welcome back')">Welcome</button>
+        </div>
+
+        <!-- Log -->
+        <div class="section-label">Log</div>
+        <div class="log" id="logBox">
+            <span class="ts">[ready]</span> NayanSathi Voice UI loaded<br />
+        </div>
+    </div>
+
+    <script>
+        const PI_VOICE = 'http://192.168.137.40:3001';
+        const API_BASE = '';  // same origin for server.js
+
+        function log(msg, color) {
+            const lb = document.getElementById('logBox');
+            const t = new Date().toLocaleTimeString('en', { hour12: false });
+            const c = color || '#4ade80';
+            lb.innerHTML += `<span class="ts">[${t}]</span> <span style="color:${c}">${msg}</span><br/>`;
+            lb.scrollTop = lb.scrollHeight;
+        }
+
+        function setStatus(state, msg) {
+            const dot = document.getElementById('btDot');
+            const txt = document.getElementById('btStatusText');
+            const ico = document.getElementById('btIcon');
+            txt.textContent = msg;
+            dot.className = 'dot ' + (state === 'ok' ? 'connected' : state === 'err' ? 'error' : '');
+            ico.textContent = state === 'ok' ? '✅' : state === 'err' ? '❌' : '🎧';
+        }
+
+        function setFeedback(state, msg, showWave) {
+            const fb = document.getElementById('feedback');
+            const fi = document.getElementById('feedIcon');
+            const ft = document.getElementById('feedText');
+            fb.className = 'feedback ' + (state === 'ok' ? 'ok' : state === 'err' ? 'err' : '');
+            if (showWave) {
+                fi.innerHTML = `<div class="wave"><span></span><span></span><span></span><span></span><span></span></div>`;
+            } else {
+                fi.textContent = state === 'ok' ? '✅' : state === 'err' ? '❌' : '💬';
+            }
+            ft.textContent = msg;
+        }
+
+        function setPhrase(p) {
+            document.getElementById('voiceInput').value = p;
+        }
+
+        async function connectBT() {
+            const btn = document.getElementById('btBtn');
+            btn.disabled = true;
+            btn.textContent = '⏳ Connecting…';
+            setStatus('', 'Connecting to Airdopes… (may take 8-10s)');
+            log('Connecting to Airdopes 141 — please wait…', '#60a5fa');
+            try {
+                const r = await fetch(`${API_BASE}/api/bluetooth/connect-airdopes`, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' }
+                });
+                const d = await r.json();
+                if (d.success) {
+                    setStatus('ok', '✅ ' + d.message);
+                    log('✅ ' + d.message, '#4ade80');
+                    if (d.sink) log('🔊 Sink: ' + d.sink, '#4ade80');
+                    btn.textContent = '✅ Connected';
+                    // Show Pi raw output for debugging
+                    if (d.log) log('Pi: ' + d.log.replace(/\n/g, ' | ').slice(0, 200), '#6b7280');
+                } else {
+                    setStatus('err', '❌ ' + (d.message || 'Connection failed'));
+                    log('❌ BT failed: ' + d.message, '#f87171');
+                    if (d.log) log('Pi log: ' + d.log.replace(/\n/g, ' | ').slice(0, 200), '#fbbf24');
+                    btn.textContent = '🔄 Retry Connect';
+                    btn.disabled = false;
+                }
+            } catch (e) {
+                setStatus('err', '❌ ' + e.message);
+                log('Error: ' + e.message, '#f87171');
+                btn.textContent = '🔄 Retry';
+                btn.disabled = false;
+            }
+        }
+
+        async function speak() {
+            const btn = document.getElementById('speakBtn');
+            const text = document.getElementById('voiceInput').value.trim() || 'NayanSathi is online';
+
+            // INSTANT feedback on click — wave shows before any network call
+            btn.disabled = true;
+            btn.innerHTML = '<div class="wave" style="height:18px"><span></span><span></span><span></span><span></span><span></span></div>';
+            setFeedback('', '🔊 Speaking…', true);
+            log(`🎙 "${text}"`, '#a78bfa');
+
+            try {
+                const url = `${PI_VOICE}/?text=${encodeURIComponent(text)}`;
+                const r = await fetch(url, { signal: AbortSignal.timeout(30000) });
+                const d = await r.json();
+                if (d.success) {
+                    setFeedback('ok', `✅ Female voice spoken (Piper)`, false);
+                    log(`✅ Done — engine: ${d.engine}`, '#4ade80');
+                } else {
+                    setFeedback('err', '❌ ' + (d.error || 'Audio failed — check Airdopes'), false);
+                    log(`❌ ${d.error || 'failed'}`, '#f87171');
+                }
+            } catch (e) {
+                log(`Trying server proxy…`, '#fbbf24');
+                try {
+                    const r2 = await fetch(`${API_BASE}/api/bluetooth/voice-test`, {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify({ text })
+                    });
+                    const d2 = await r2.json();
+                    if (d2.success) {
+                        setFeedback('ok', '✅ Female voice spoken', false);
+                        log('✅ Via proxy', '#4ade80');
+                    } else {
+                        setFeedback('err', '❌ ' + d2.message, false);
+                        log('❌ ' + d2.message, '#f87171');
+                    }
+                } catch (e2) {
+                    setFeedback('err', '❌ Pi unreachable — is it on?', false);
+                    log('❌ ' + e2.message, '#f87171');
+                }
+            } finally {
+                btn.disabled = false;
+                btn.textContent = '🔊 Speak';
+            }
+        }
+
+        // Auto-check voice server on load (ping only — NO TTS played)
+        window.addEventListener('load', async () => {
+            log('Checking Pi voice server…', '#60a5fa');
+            try {
+                const r = await fetch(`${PI_VOICE}/ping`, { signal: AbortSignal.timeout(4000) });
+                log('Pi voice server ✅ online', '#4ade80');
+                setStatus('ok', '✅ Voice server online — ready');
+                document.getElementById('btDot').classList.add('connected');
+            } catch (e) {
+                log('Voice server warming up — click Speak when ready', '#fbbf24');
+            }
+        });
+
+    </script>
+</body>
+
+</html>

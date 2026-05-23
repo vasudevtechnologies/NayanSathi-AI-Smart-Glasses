@@ -1,0 +1,450 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<title>NayanSathi — Download PDF</title>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
+<link href="https://fonts.googleapis.com/css2?family=Outfit:wght@400;700;900&display=swap" rel="stylesheet">
+<style>
+  *{margin:0;padding:0;box-sizing:border-box}
+  body{background:#06090f;font-family:'Outfit',sans-serif;display:flex;align-items:center;justify-content:center;min-height:100vh}
+  .card{background:#0f1622;border:1px solid rgba(0,212,255,.25);border-radius:18px;padding:44px 52px;text-align:center;max-width:460px;width:90%;box-shadow:0 0 40px rgba(0,212,255,.08)}
+  .logo{font-size:3.2rem;margin-bottom:14px}
+  h1{font-size:2.1rem;font-weight:900;background:linear-gradient(135deg,#00d4ff,#7c3aed);-webkit-background-clip:text;-webkit-text-fill-color:transparent;margin-bottom:6px}
+  .sub{color:#4d7a94;font-size:.88rem;margin-bottom:28px;line-height:1.6}
+  .btn{background:linear-gradient(135deg,#00d4ff,#7c3aed);color:#fff;border:none;padding:14px 38px;border-radius:10px;font-size:1rem;font-weight:700;cursor:pointer;font-family:'Outfit',sans-serif;transition:opacity .2s;width:100%}
+  .btn:hover:not(:disabled){opacity:.85}
+  .btn:disabled{opacity:.4;cursor:not-allowed}
+  .status{font-size:.82rem;color:#00d4ff;margin-top:14px;min-height:22px;font-weight:600}
+</style>
+</head>
+<body>
+<div class="card">
+  <div class="logo">🕶️</div>
+  <h1>NayanSathi</h1>
+  <p class="sub">AI Smart Glasses for the Visually Impaired<br>Complete Project Summary — PDF Report</p>
+  <button class="btn" id="dlBtn" onclick="makePDF()">⬇️ Download Project PDF</button>
+  <div class="status" id="st"></div>
+</div>
+<script>
+const ST = id => document.getElementById(id);
+function setStatus(m){ ST('st').textContent = m; }
+
+function makePDF(){
+  ST('dlBtn').disabled = true;
+  setStatus('Building PDF...');
+  const {jsPDF} = window.jspdf;
+  const doc = new jsPDF('p','mm','a4');
+  const PW = 210, PH = 297, ML = 18, MR = 192, TW = MR - ML;
+  let y = 0;
+
+  /* ── helpers ── */
+  function addPage(){
+    doc.addPage();
+    y = 20;
+    doc.setDrawColor(30,80,160);
+    doc.setLineWidth(0.4);
+    doc.rect(10,10,190,277);
+  }
+  function need(n){ if(y+n > PH-18) addPage(); }
+
+  function h1(t){
+    need(14);
+    doc.setFillColor(15,40,100);
+    doc.roundedRect(ML, y-5, TW, 12, 2, 2, 'F');
+    doc.setFont('helvetica','bold');
+    doc.setFontSize(13);
+    doc.setTextColor(255,255,255);
+    doc.text(t, PW/2, y+3, {align:'center'});
+    y += 14;
+  }
+  function h2(t){
+    need(10);
+    doc.setFont('helvetica','bold');
+    doc.setFontSize(11);
+    doc.setTextColor(10,60,160);
+    doc.text(t, ML, y);
+    doc.setDrawColor(10,60,160);
+    doc.setLineWidth(0.4);
+    doc.line(ML, y+1.5, MR, y+1.5);
+    y += 8;
+  }
+  function h3(t){
+    need(8);
+    doc.setFont('helvetica','bold');
+    doc.setFontSize(9.5);
+    doc.setTextColor(80,30,200);
+    doc.text('» '+t, ML+2, y);
+    y += 6;
+  }
+  function para(t, indent=ML){
+    doc.setFont('helvetica','normal');
+    doc.setFontSize(9);
+    doc.setTextColor(30,30,30);
+    const lines = doc.splitTextToSize(t, MR - indent);
+    need(lines.length*4.8+2);
+    doc.text(lines, indent, y);
+    y += lines.length*4.8+2;
+  }
+  function bul(t, ind=ML+4){
+    doc.setFont('helvetica','normal');
+    doc.setFontSize(9);
+    doc.setTextColor(30,30,30);
+    const lines = doc.splitTextToSize('•  '+t, MR-ind);
+    need(lines.length*4.5+1);
+    doc.text(lines, ind, y);
+    y += lines.length*4.5+1;
+  }
+  function sp(n=4){ y += n; }
+
+  function tblHead(cols, ws){
+    need(9);
+    doc.setFillColor(15,40,100);
+    doc.rect(ML, y-5.5, TW, 8, 'F');
+    doc.setFont('helvetica','bold');
+    doc.setFontSize(8.5);
+    doc.setTextColor(255,255,255);
+    let x = ML+2;
+    cols.forEach((c,i)=>{ doc.text(c, x, y); x+=ws[i]; });
+    y += 7;
+  }
+  function tblRow(cols, ws, shade){
+    need(8);
+    if(shade){ doc.setFillColor(240,244,255); doc.rect(ML,y-5.5,TW,7.5,'F'); }
+    doc.setFont('helvetica','normal');
+    doc.setFontSize(8.5);
+    doc.setTextColor(20,20,20);
+    let x = ML+2;
+    cols.forEach((c,i)=>{ doc.text(String(c), x, y); x+=ws[i]; });
+    doc.setDrawColor(200,210,230);
+    doc.setLineWidth(0.1);
+    doc.line(ML, y+2, MR, y+2);
+    y += 7;
+  }
+
+  /* ════════════════════════════════════
+     COVER PAGE
+  ════════════════════════════════════ */
+  doc.setFillColor(8,20,60);
+  doc.rect(0,0,PW,PH,'F');
+
+  // top banner
+  doc.setFillColor(255,255,255,0.05);
+  doc.setDrawColor(0,180,255);
+  doc.setLineWidth(0.6);
+  doc.rect(10,10,190,277);
+
+  doc.setFont('helvetica','bold');
+  doc.setFontSize(38);
+  doc.setTextColor(0,200,255);
+  doc.text('NayanSathi', PW/2, 75, {align:'center'});
+
+  doc.setFontSize(13);
+  doc.setTextColor(200,225,255);
+  doc.text('AI Smart Glasses for the Visually Impaired', PW/2, 90, {align:'center'});
+
+  doc.setFontSize(10);
+  doc.setTextColor(100,150,200);
+  doc.text('Comprehensive Project Summary Report', PW/2, 100, {align:'center'});
+
+  // divider
+  doc.setDrawColor(0,180,255);
+  doc.setLineWidth(0.5);
+  doc.line(40,107,170,107);
+
+  // info table on cover
+  const info = [
+    ['Platform',  'Raspberry Pi 4 (4GB RAM) + ESP32-CAM'],
+    ['Core AI',   'YOLOv11n ONNX — Real-time Object Detection'],
+    ['Audio',     'Piper TTS + Bluetooth A2DP (Airdopes 141)'],
+    ['Dashboard', 'Node.js + WebSocket + SSH Terminal'],
+    ['Power',     'Li-Po Battery + Attachable Solar Panel'],
+    ['Domain',    'Assistive Tech · IoT · Computer Vision · Edge AI'],
+    ['Cost',      '~INR 8,280 (~$100 USD)  vs  OrCam ~$3,500'],
+    ['Date',      new Date().toLocaleDateString('en-IN',{year:'numeric',month:'long',day:'numeric'})],
+  ];
+  let iy = 125;
+  info.forEach(([k,v])=>{
+    doc.setFont('helvetica','bold'); doc.setFontSize(9); doc.setTextColor(0,200,255);
+    doc.text(k+':', 38, iy);
+    doc.setFont('helvetica','normal'); doc.setTextColor(210,230,255);
+    doc.text(v, 75, iy);
+    iy += 10;
+  });
+
+  doc.setFontSize(8); doc.setTextColor(60,100,160);
+  doc.text('IoT / AI Academic Project — For Judge Evaluation', PW/2, PH-18, {align:'center'});
+  doc.text('Affordable  ·  Open Source  ·  Edge AI  ·  Wearable Assistive Technology', PW/2, PH-12, {align:'center'});
+
+  /* ════════════════════════════════════
+     PAGE 2 — Overview + Architecture
+  ════════════════════════════════════ */
+  addPage();
+  h1('1.  Project Overview');
+  sp(2);
+  para('NayanSathi ("Eye Companion" in Hindi) is an intelligent wearable assistive device designed to give visually impaired individuals real-time awareness of their surroundings using AI-powered object detection and natural voice feedback. Built on a Raspberry Pi 4 housed in a glasses frame, it uses a compact ESP32-CAM for vision, runs YOLOv11 (ONNX) for detection, and speaks detected objects through Bluetooth earbuds via Piper TTS.');
+  sp(3);
+  para('A full web dashboard is accessible over Wi-Fi or the internet, allowing caregivers to monitor, configure, and SSH into the glasses remotely.');
+  sp(6);
+
+  h2('2.  System Architecture');
+  sp(2);
+  const archW = [48,8,52,8,65];
+  tblHead(['From','','Data Flow','','To'], archW);
+  [
+    ['ESP32-CAM','→','MJPEG Video Stream','→','Raspberry Pi 4 (YOLOv11)'],
+    ['Raspberry Pi 4','→','Detection Results','→','Node.js Server (WebSocket)'],
+    ['Node.js Server','→','Voice Text','→','Piper TTS (Port 3001)'],
+    ['Piper TTS','→','Audio via Bluetooth','→','Airdopes 141 Earbuds'],
+    ['Node.js Server','→','WebSocket + SSH','→','Web Dashboard (Browser)'],
+    ['Solar Panel','→','Charge (via TP4056)','→','Li-Po Battery → Pi Power'],
+  ].forEach((r,i)=>tblRow(r, archW, i%2===0));
+
+  /* ════════════════════════════════════
+     PAGE 3 — Hardware + Solar
+  ════════════════════════════════════ */
+  addPage();
+  h1('3.  Hardware Components & Cost');
+  sp(2);
+  const hw = [52,50,52,35];
+  tblHead(['Component','Model / Spec','Role','Cost (INR)'], hw);
+  [
+    ['Raspberry Pi 4','4GB RAM','Central AI Processor','Rs. 5,500'],
+    ['ESP32-CAM','OV2640 Sensor','Live Video Stream','Rs. 350'],
+    ['Bluetooth Earbuds','Airdopes 141','Wireless Voice Output','Rs. 700'],
+    ['Li-Po Battery','3000mAh 3.7V','Portable Power','Rs. 450'],
+    ['Solar Panel','5V / 1W Flexible','Daytime Charging','Rs. 350'],
+    ['TP4056 Module','Charge Controller','Solar to Battery','Rs. 30'],
+    ['3D Printed Frame','Custom Design','Wearable Housing','Rs. 400'],
+    ['Custom PCB (KiCad)','ESP32 + Charge Ckt.','Circuit Integration','Rs. 200'],
+    ['MicroSD + Misc','32GB Class 10','Storage & Wiring','Rs. 300'],
+    ['TOTAL','','','~Rs. 8,280'],
+  ].forEach((r,i)=>tblRow(r,hw,i%2===0));
+  sp(3);
+  para('This is approximately 97% cheaper than commercial alternatives such as OrCam MyEye (~$3,500 / Rs. 2.9 lakh).');
+  sp(6);
+
+  h1('4.  Solar Panel — Attach / Detach Feature');
+  sp(4);
+  h2('Design Concept');
+  bul('DAY MODE: Magnetic clip attaches flexible solar panel to top bar of glasses frame.');
+  bul('NIGHT MODE: One-second snap-off detach — no wires, no tools required.');
+  bul('Uses magnetic pogo-pin connectors (same mechanism as smartwatch chargers).');
+  bul('Lightweight flexible panel adds only ~20g when attached to the frame.');
+  sp(3);
+  h2('Power Flow');
+  para('Solar Panel (5V, 1W)  →  TP4056 Charge Controller  →  Li-Po Battery (3.7V, 3000mAh)  →  MT3608 Boost Converter (5V output)  →  Raspberry Pi 4 + ESP32-CAM');
+  sp(3);
+  h2('Battery Life');
+  const battW=[70,120];
+  tblHead(['Condition','Estimated Runtime'],battW);
+  [
+    ['Battery only (no solar)','2.5 to 3 hours continuous use'],
+    ['With solar panel (sunny outdoor)','4 to 5 hours'],
+    ['Idle / standby mode','6+ hours'],
+    ['Dashboard battery % visible to caregiver','Real-time remote monitoring'],
+  ].forEach((r,i)=>tblRow(r,battW,i%2===0));
+
+  /* ════════════════════════════════════
+     PAGE 4 — ML Models
+  ════════════════════════════════════ */
+  addPage();
+  h1('5.  ML Models — Details & Training');
+  sp(2);
+  h2('Primary Model: YOLOv11n (ONNX)');
+  sp(2);
+  const mlW=[55,130];
+  tblHead(['Property','Detail'],mlW);
+  [
+    ['Model File','yolo11n.onnx  (YOLOv11 Nano)'],
+    ['Format','ONNX — Open Neural Network Exchange'],
+    ['Framework','Ultralytics YOLOv11 exported to ONNX Runtime'],
+    ['Input Size','640 x 640 pixels'],
+    ['Classes','80 COCO classes (person, car, dog, bottle, phone, etc.)'],
+    ['Runtime','ONNX Runtime on Raspberry Pi 4 CPU (ARM)'],
+    ['Inference Speed','8 to 15 FPS on Pi 4 CPU'],
+    ['Model File Size','~10.9 MB (nano variant — smallest YOLO)'],
+    ['Confidence Threshold','0.55 default (tunable per class)'],
+  ].forEach((r,i)=>tblRow(r,mlW,i%2===0));
+  sp(5);
+
+  h2('Training Pipeline (Step by Step)');
+  sp(2);
+  h3('Step 1 — Dataset');
+  bul('COCO 2017 dataset: 118,000 training images with 80 pre-labeled object classes.');
+  h3('Step 2 — Pretrained Base Model');
+  bul('Download YOLOv11n weights: yolo11n.pt from Ultralytics official repository.');
+  h3('Step 3 — Fine-Tuning for Custom Objects');
+  bul('Collect custom images (white cane, wheelchair) using a phone camera.');
+  bul('Label images using Roboflow or LabelImg annotation tools.');
+  bul('Run: python train.py --model yolo11n.pt --data custom.yaml --epochs 50');
+  bul('Free GPU training: Google Colab T4 GPU (~1 hour for 50 epochs).');
+  h3('Step 4 — Export to ONNX');
+  bul('Command: from ultralytics import YOLO; model.export(format="onnx", imgsz=640)');
+  bul('ONNX Runtime gives ~30% faster inference on ARM vs raw PyTorch.');
+  h3('Step 5 — Deploy to Pi');
+  bul('Push yolo11n.onnx to Pi via dashboard SFTP deployer or SCP.');
+  bul('Install: pip install onnxruntime  then run: python yolo_server.py');
+  sp(5);
+
+  h2('All Models Used in This Project');
+  sp(2);
+  const mW=[42,48,55,40];
+  tblHead(['Model','Purpose','Framework','Status'],mW);
+  [
+    ['YOLOv11n ONNX','Real-time object detection','ONNX Runtime (Pi 4)','Active'],
+    ['TF.js COCO-SSD','Browser webcam fallback','TensorFlow.js','Active'],
+    ['XGBoost','Electricity theft detection','scikit-learn','Active'],
+    ['MobileNet SSD','Lightweight Pi backup','TF Lite','Planned'],
+    ['Whisper (tiny)','Voice command input','OpenAI Whisper','Planned'],
+    ['DepthAnything','Monocular depth map','PyTorch','Planned'],
+    ['DeepFace/FaceNet','Face recognition','TF / OpenCV','Planned'],
+    ['EasyOCR','Text reading / signs','PyTorch OCR','Planned'],
+  ].forEach((r,i)=>tblRow(r,mW,i%2===0));
+
+  /* ════════════════════════════════════
+     PAGE 5 — Features + Advantages
+  ════════════════════════════════════ */
+  addPage();
+  h1('6.  Key Features & Advantages');
+  sp(3);
+  h2('For the Visually Impaired User');
+  bul('Real-time object awareness — detected objects announced within ~200ms');
+  bul('Completely hands-free — no phone, no button press required');
+  bul('Natural human-like voice — Piper TTS (Indian English female voice)');
+  bul('Priority-based alerts — person > car > other objects (safety first)');
+  bul('Lightweight wearable glasses form factor — not bulky or intrusive');
+  bul('Wireless audio via Bluetooth earbuds — no cables near the user');
+  bul('Solar charging — extended outdoor use without extra power bank');
+  sp(4);
+  h2('Technical Advantages');
+  bul('Edge AI — all inference runs on-device, zero cloud dependency');
+  bul('Open source stack — YOLOv11 + ONNX + Piper; no licensing cost');
+  bul('Modular design — ESP32-CAM is hot-swappable, scripts deployable over Wi-Fi');
+  bul('Remote management — SSH + REST API + WebSocket dashboard over internet');
+  bul('Multi-model fallback — TF.js in browser when Pi is offline');
+  sp(4);
+  h2('Web Dashboard Features');
+  const dW=[52,133];
+  tblHead(['Feature','Description'],dW);
+  [
+    ['Live Camera Feed','ESP32-CAM MJPEG stream with YOLO bounding boxes overlaid'],
+    ['Detection Log','Real-time list of detected objects, confidence %, timestamp'],
+    ['SSH Terminal','Full PTY terminal to Pi directly in browser (xterm.js)'],
+    ['Pi System Stats','CPU%, RAM%, Temperature, uptime — live polled every 5s'],
+    ['Bluetooth Control','Connect Airdopes 141, set A2DP profile, test voice output'],
+    ['YOLO Control','Start/stop inference, tune confidence threshold live'],
+    ['Tunnel Manager','Generate public URL via ngrok or Cloudflare for remote access'],
+    ['Script Deployer','Push ONNX model + Python scripts to Pi via SFTP over Wi-Fi'],
+    ['PCB Schematic Viewer','Interactive KiCad PCB diagram viewer in browser'],
+  ].forEach((r,i)=>tblRow(r,dW,i%2===0));
+
+  /* ════════════════════════════════════
+     PAGE 6 — Judge Q&A
+  ════════════════════════════════════ */
+  addPage();
+  h1('7.  Expected Judge Questions & Answers');
+  sp(4);
+
+  const QA = [
+    ['Q1. Why Raspberry Pi 4 instead of a cheaper microcontroller like Arduino?',
+     'Raspberry Pi 4 (4GB RAM) runs ONNX Runtime for YOLOv11 at 8-15 FPS — impossible on Arduino or bare ESP32. It runs full Linux OS, supporting SSH, Python, WebSocket servers simultaneously. Jetson Nano is more expensive (Rs.12,000+) and bulkier for a glasses frame.'],
+    ['Q2. Why ONNX format for the AI model?',
+     'ONNX allows training on a powerful PC using PyTorch/Ultralytics, then deploying to Pi CPU via ONNX Runtime — optimized for ARM processors. It is ~30% faster than raw PyTorch on Pi and requires no heavy ML framework at runtime.'],
+    ['Q3. How does the voice announcement work end-to-end?',
+     'Detections from YOLOv11 are batched in a 200ms window on the server, filtered by a 6-second per-class cooldown, sorted by priority (person > car > object). The top 2 objects are sent as text to Piper TTS server (port 3001) on Pi, which generates speech and plays it via Bluetooth A2DP to the earbuds.'],
+    ['Q4. What happens if ESP32-CAM goes offline?',
+     'Three-layer fallback: (1) Server auto-probes ESP32 every 15 seconds via TCP. (2) Dashboard shows offline overlay to user. (3) Laptop webcam activates automatically with TF.js COCO-SSD running in-browser for seamless continuity.'],
+    ['Q5. How does the solar panel attach and detach?',
+     'Magnetic pogo-pin connectors (same type used in smartwatch chargers) are mounted on the glasses top bar. In daylight, user snaps the flexible panel on in 1 second — it charges the Li-Po battery via TP4056. At night or indoors, it snaps off just as fast. No loose wires, no tools, no short-circuit risk.'],
+    ['Q6. Is this real-time? What is the full pipeline latency?',
+     'ESP32-CAM frame capture: 33ms. Pi YOLOv11n inference: 60-120ms. WebSocket relay: ~20ms. Piper TTS speech: 500-800ms. Total perceived latency: ~800ms to 1.2s — well within acceptable range for walking-speed navigation.'],
+    ['Q7. How is NayanSathi different from OrCam MyEye?',
+     'NayanSathi costs Rs.8,280 (~$100) vs OrCam at Rs.2.9 lakh (~$3,500). NayanSathi is open source, fully customizable, has a solar panel, web dashboard, internet remote control, SSH access, and can be retrained for custom objects. OrCam is a closed product with no customization.'],
+    ['Q8. What ML training process did you follow?',
+     'Used YOLOv11n pretrained on COCO 2017 (118K images, 80 classes). Exported to ONNX via Ultralytics. Deployed to Pi using ONNX Runtime. For custom objects (cane, wheelchair), fine-tuning can be done using Roboflow for labeling and Google Colab T4 GPU for 50-epoch training (~1 hour).'],
+    ['Q9. How does the system handle user privacy?',
+     'All video is processed locally on the Pi — no frames are uploaded to any cloud. The camera stream proxy stays within local Wi-Fi. The internet tunnel (Cloudflare/ngrok) is manually started/stopped from the dashboard. No data leaves the device without explicit user action.'],
+    ['Q10. Can it read text or currency notes?',
+     'Not in current version — YOLOv11 detects 80 COCO object classes only. OCR can be added using Tesseract or EasyOCR running on Pi. Indian currency detection can be added by fine-tuning YOLO on a custom labeled currency dataset. Both are planned as future scope features.'],
+    ['Q11. How do you deploy updates to the glasses remotely?',
+     'The web dashboard has a built-in Script Deployer that uses SSH + SFTP to push new ONNX model files and Python scripts to Pi over Wi-Fi in one click. Via Cloudflare Tunnel, this works from anywhere on the internet without physical access to the device.'],
+    ['Q12. What does the name NayanSathi mean?',
+     '"Nayan" (Hindi: nayan) means eye. "Sathi" means companion or friend. Together: Eye Companion — a trustworthy vision partner for visually impaired individuals. The name emphasizes human-centered assistive purpose, not just the technology.'],
+  ];
+
+  QA.forEach(([q, a], idx)=>{
+    need(28);
+    // Q box
+    doc.setFillColor(230,238,255);
+    doc.roundedRect(ML, y-5, TW, 9, 1.5, 1.5, 'F');
+    doc.setFont('helvetica','bold');
+    doc.setFontSize(9);
+    doc.setTextColor(10,40,130);
+    const ql = doc.splitTextToSize(q, TW-6);
+    doc.text(ql, ML+3, y);
+    y += ql.length*5 + 2;
+    // A text
+    doc.setFont('helvetica','normal');
+    doc.setFontSize(8.8);
+    doc.setTextColor(35,35,35);
+    const al = doc.splitTextToSize('Ans: '+a, TW-4);
+    need(al.length*4.5+5);
+    doc.text(al, ML+3, y);
+    y += al.length*4.5 + 7;
+  });
+
+  /* ════════════════════════════════════
+     PAGE 7 — Future Scope + Summary
+  ════════════════════════════════════ */
+  addPage();
+  h1('8.  Future Scope');
+  sp(3);
+  const fsW=[55,130];
+  tblHead(['Feature','Description'],fsW);
+  [
+    ['GPS Integration','Announce street names and turn-by-turn navigation cues'],
+    ['Custom Wake Word','"NayanSathi, what is ahead?" using OpenAI Whisper tiny'],
+    ['Face Recognition','Identify known family members using FaceNet or DeepFace'],
+    ['Obstacle Distance','Monocular depth estimation using DepthAnything model'],
+    ['Emergency SOS','Auto-call caregiver if fall detected via IMU + anomaly ML'],
+    ['OCR / Text Reading','Read signs, menus, books, currency via Tesseract / EasyOCR'],
+    ['Multi-language TTS','Hindi, Marathi, Tamil voice output via multilingual Piper'],
+    ['Mobile App','Flutter companion app for caregivers replacing web dashboard'],
+    ['Night Vision','IR LED array for low-light detection during nighttime use'],
+    ['Gesture Control','MediaPipe hand gestures for mode switching without voice'],
+  ].forEach((r,i)=>tblRow(r,fsW,i%2===0));
+  sp(8);
+
+  h1('9.  One-Page Project Summary');
+  sp(3);
+  para('NayanSathi is a wearable AI assistant in the form of smart glasses designed for visually impaired individuals. The core system uses a Raspberry Pi 4 as the processing brain running YOLOv11 ONNX for real-time object detection, an ESP32-CAM as the vision sensor streaming live MJPEG video, Bluetooth earbuds (Airdopes 141) for wireless voice output, and a Piper TTS engine for natural Indian-English speech synthesis.');
+  sp(3);
+  para('The system includes an attachable flexible solar panel using magnetic pogo-pin connectors that snaps on during daytime to charge the Li-Po battery and detaches at night for a lighter form factor. A full web dashboard built in Node.js provides SSH terminal access, live camera feed with YOLO bounding boxes, system stats, Bluetooth management, and remote script deployment — all accessible over the internet via Cloudflare Tunnel.');
+  sp(3);
+  para('Total hardware cost is approximately Rs. 8,280 (~$100 USD) — making NayanSathi 97% cheaper than commercial alternatives like OrCam MyEye ($3,500). The entire system is open source and customizable, allowing new object classes to be trained using free tools like Google Colab and Roboflow.');
+  sp(8);
+
+  // Footer on all pages
+  const total = doc.internal.getNumberOfPages();
+  for(let i=1;i<=total;i++){
+    doc.setPage(i);
+    doc.setFont('helvetica','normal');
+    doc.setFontSize(7.5);
+    doc.setTextColor(100,120,160);
+    doc.text(
+      `NayanSathi — AI Smart Glasses Project  |  Page ${i} of ${total}`,
+      PW/2, PH-7, {align:'center'}
+    );
+  }
+
+  doc.save('NayanSathi_Project_Summary.pdf');
+  ST('dlBtn').disabled = false;
+  setStatus('✅ PDF downloaded successfully!');
+  setTimeout(()=>setStatus(''),5000);
+}
+
+window.addEventListener('load', ()=> setTimeout(makePDF, 900));
+</script>
+</body>
+</html>

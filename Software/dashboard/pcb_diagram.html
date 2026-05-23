@@ -1,0 +1,1401 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>PCB Diagram — ESP32 Multi-Sensor Board</title>
+    <style>
+        @import url('https://fonts.googleapis.com/css2?family=Share+Tech+Mono&family=Orbitron:wght@400;700;900&family=Rajdhani:wght@400;600;700&display=swap');
+
+        *,
+        *::before,
+        *::after {
+            box-sizing: border-box;
+            margin: 0;
+            padding: 0;
+        }
+
+        html,
+        body {
+            width: 100%;
+            height: 100%;
+            background: #0a0f0a;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            font-family: 'Share Tech Mono', monospace;
+            color: #c8ffa0;
+            overflow-x: hidden;
+        }
+
+        header {
+            width: 100%;
+            padding: 18px 40px;
+            background: linear-gradient(90deg, #002200 0%, #001a00 50%, #002200 100%);
+            border-bottom: 2px solid #1a4d00;
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            position: sticky;
+            top: 0;
+            z-index: 100;
+            box-shadow: 0 4px 30px rgba(0, 255, 0, 0.1);
+        }
+
+        header .brand {
+            font-family: 'Orbitron', sans-serif;
+            font-size: 1.3rem;
+            font-weight: 900;
+            color: #4eff4e;
+            letter-spacing: 3px;
+            text-shadow: 0 0 10px rgba(78, 255, 78, 0.6);
+        }
+
+        header .rev {
+            font-size: 0.75rem;
+            color: #5a8a5a;
+            letter-spacing: 2px;
+        }
+
+        .pcb-wrapper {
+            flex: 1;
+            width: 100%;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            padding: 30px 20px 60px;
+        }
+
+        .pcb-title {
+            font-family: 'Orbitron', sans-serif;
+            font-size: 1rem;
+            color: #3ddc84;
+            letter-spacing: 4px;
+            margin-bottom: 6px;
+            text-transform: uppercase;
+        }
+
+        .pcb-subtitle {
+            font-size: 0.72rem;
+            color: #508050;
+            margin-bottom: 28px;
+            letter-spacing: 2px;
+        }
+
+        /* ── PCB BOARD ── */
+        .pcb-board {
+            position: relative;
+            width: 1100px;
+            height: 780px;
+            background: #0d2a0d;
+            border: 3px solid #1e5c1e;
+            border-radius: 14px;
+            box-shadow:
+                0 0 0 6px #0a1f0a,
+                0 0 40px rgba(0, 200, 0, 0.15),
+                inset 0 0 80px rgba(0, 0, 0, 0.5);
+            overflow: visible;
+        }
+
+        /* PCB grid texture */
+        .pcb-board::before {
+            content: '';
+            position: absolute;
+            inset: 0;
+            background-image:
+                linear-gradient(rgba(0, 80, 0, 0.18) 1px, transparent 1px),
+                linear-gradient(90deg, rgba(0, 80, 0, 0.18) 1px, transparent 1px);
+            background-size: 20px 20px;
+            border-radius: 11px;
+            pointer-events: none;
+        }
+
+        /* Corner fiducials */
+        .fiducial {
+            position: absolute;
+            width: 16px;
+            height: 16px;
+            border: 2px solid #2a6a2a;
+            border-radius: 50%;
+            background: #0d2a0d;
+        }
+
+        .fiducial::after {
+            content: '';
+            position: absolute;
+            inset: 3px;
+            background: #c8a000;
+            border-radius: 50%;
+        }
+
+        .fiducial.tl {
+            top: 18px;
+            left: 18px;
+        }
+
+        .fiducial.tr {
+            top: 18px;
+            right: 18px;
+        }
+
+        .fiducial.bl {
+            bottom: 18px;
+            left: 18px;
+        }
+
+        .fiducial.br {
+            bottom: 18px;
+            right: 18px;
+        }
+
+        /* Board edge routing holes */
+        .mount-hole {
+            position: absolute;
+            width: 12px;
+            height: 12px;
+            border: 2px solid #3a7a3a;
+            border-radius: 50%;
+            background: #000;
+            box-shadow: 0 0 0 3px #1a4a1a;
+        }
+
+        /* ── TRACES ── */
+        svg.traces {
+            position: absolute;
+            inset: 0;
+            width: 100%;
+            height: 100%;
+            pointer-events: none;
+            z-index: 1;
+        }
+
+        svg.traces path,
+        svg.traces line {
+            fill: none;
+            stroke-linecap: round;
+            stroke-linejoin: round;
+        }
+
+        .trace-vcc {
+            stroke: #ff4444;
+            stroke-width: 2.5;
+        }
+
+        .trace-gnd {
+            stroke: #444;
+            stroke-width: 2.5;
+        }
+
+        .trace-data {
+            stroke: #4488ff;
+            stroke-width: 2;
+        }
+
+        .trace-sda {
+            stroke: #ff44ff;
+            stroke-width: 2;
+        }
+
+        .trace-scl {
+            stroke: #ffaa00;
+            stroke-width: 2;
+        }
+
+        .trace-out {
+            stroke: #44ffaa;
+            stroke-width: 2;
+        }
+
+        .trace-sig {
+            stroke: #ff8844;
+            stroke-width: 2;
+        }
+
+        /* Trace glow effect */
+        .trace-glow-red {
+            stroke: #ff4444;
+            stroke-width: 6;
+            opacity: 0.12;
+        }
+
+        .trace-glow-blue {
+            stroke: #4488ff;
+            stroke-width: 6;
+            opacity: 0.12;
+        }
+
+        .trace-glow-pink {
+            stroke: #ff44ff;
+            stroke-width: 6;
+            opacity: 0.12;
+        }
+
+        .trace-glow-yel {
+            stroke: #ffaa00;
+            stroke-width: 6;
+            opacity: 0.12;
+        }
+
+        .trace-glow-grn {
+            stroke: #44ffaa;
+            stroke-width: 6;
+            opacity: 0.12;
+        }
+
+        /* ── COMPONENT BASE ── */
+        .component {
+            position: absolute;
+            z-index: 10;
+        }
+
+        .comp-body {
+            position: relative;
+            border-radius: 6px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            flex-direction: column;
+            box-shadow:
+                0 4px 15px rgba(0, 0, 0, 0.6),
+                inset 0 1px 0 rgba(255, 255, 255, 0.08);
+        }
+
+        .comp-label {
+            font-family: 'Share Tech Mono', monospace;
+            font-size: 0.6rem;
+            color: #c8ffa0;
+            letter-spacing: 1px;
+            text-align: center;
+            margin-top: 3px;
+            text-shadow: 0 0 6px rgba(0, 255, 0, 0.4);
+        }
+
+        .comp-ref {
+            font-family: 'Share Tech Mono', monospace;
+            font-size: 0.55rem;
+            color: #4eff4e;
+            letter-spacing: 1px;
+            text-align: center;
+            opacity: 0.8;
+        }
+
+        /* Pads */
+        .pad {
+            position: absolute;
+            width: 8px;
+            height: 8px;
+            background: #c8a000;
+            border-radius: 50%;
+            border: 1px solid #ffd700;
+            box-shadow: 0 0 4px rgba(200, 160, 0, 0.5);
+            z-index: 15;
+        }
+
+        .pad::after {
+            content: '';
+            position: absolute;
+            inset: 2px;
+            background: #888;
+            border-radius: 50%;
+        }
+
+        .pad-sq {
+            border-radius: 2px !important;
+        }
+
+        /* Pin label */
+        .pin-label {
+            position: absolute;
+            font-size: 0.45rem;
+            font-family: 'Share Tech Mono', monospace;
+            color: #90b090;
+            white-space: nowrap;
+            z-index: 20;
+            pointer-events: none;
+        }
+
+        /* ══════════════════════════════════════
+       ESP32 NodeMCU
+    ══════════════════════════════════════ */
+        #esp32 {
+            left: 380px;
+            top: 240px;
+            width: 180px;
+            height: 280px;
+        }
+
+        #esp32 .comp-body {
+            width: 180px;
+            height: 280px;
+            background: linear-gradient(145deg, #1a1a2e 0%, #0d0d1a 100%);
+            border: 2px solid #2a2a5a;
+        }
+
+        #esp32 .chip-top {
+            width: 140px;
+            height: 55px;
+            background: linear-gradient(145deg, #2a2a4a, #1a1a3a);
+            border: 1px solid #3a3a6a;
+            border-radius: 4px;
+            margin-bottom: 6px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+
+        #esp32 .chip-top span {
+            font-size: 0.5rem;
+            color: #aaa;
+            letter-spacing: 1px;
+        }
+
+        #esp32 .usb {
+            width: 30px;
+            height: 14px;
+            background: #555;
+            border: 1px solid #888;
+            border-radius: 3px;
+            margin-top: 8px;
+        }
+
+        #esp32 .btn-row {
+            display: flex;
+            gap: 20px;
+            margin-top: 6px;
+        }
+
+        #esp32 .btn {
+            width: 12px;
+            height: 8px;
+            background: #333;
+            border: 1px solid #555;
+            border-radius: 2px;
+        }
+
+        #esp32 .led-row {
+            display: flex;
+            gap: 8px;
+            margin-top: 4px;
+        }
+
+        #esp32 .led {
+            width: 6px;
+            height: 6px;
+            border-radius: 50%;
+        }
+
+        #esp32 .led.red {
+            background: #ff2222;
+            box-shadow: 0 0 6px #f00;
+        }
+
+        #esp32 .led.blue {
+            background: #2244ff;
+            box-shadow: 0 0 6px #00f;
+        }
+
+        /* ESP32 pin headers — left side */
+        .pin-row-left,
+        .pin-row-right {
+            position: absolute;
+            display: flex;
+            flex-direction: column;
+            gap: 6px;
+        }
+
+        .pin-row-left {
+            left: -12px;
+            top: 16px;
+        }
+
+        .pin-row-right {
+            right: -12px;
+            top: 16px;
+        }
+
+        /* ══════════════════════════════════════
+       VL53L0X
+    ══════════════════════════════════════ */
+        #vl53 {
+            left: 70px;
+            top: 295px;
+            width: 130px;
+            height: 72px;
+        }
+
+        #vl53 .comp-body {
+            width: 130px;
+            height: 72px;
+            background: linear-gradient(145deg, #3a1a5a, #2a0a4a);
+            border: 2px solid #6a2a9a;
+        }
+
+        #vl53 .sensor-window {
+            width: 20px;
+            height: 20px;
+            background: radial-gradient(#6600aa, #220033);
+            border: 1px solid #9944cc;
+            border-radius: 50%;
+            box-shadow: 0 0 10px rgba(150, 0, 255, 0.6);
+        }
+
+        /* ══════════════════════════════════════
+       IR Sensor
+    ══════════════════════════════════════ */
+        #ir {
+            left: 400px;
+            top: 50px;
+            width: 110px;
+            height: 130px;
+        }
+
+        #ir .comp-body {
+            width: 110px;
+            height: 130px;
+            background: linear-gradient(145deg, #0a2a5a, #051535);
+            border: 2px solid #1a4a9a;
+        }
+
+        #ir .ir-led {
+            width: 22px;
+            height: 28px;
+            background: radial-gradient(#ccddff, #668899);
+            border: 2px solid #2266aa;
+            border-radius: 50% 50% 40% 40%;
+            box-shadow: 0 0 12px rgba(100, 150, 255, 0.5);
+            margin-bottom: 4px;
+        }
+
+        #ir .ir-body {
+            width: 80px;
+            height: 60px;
+            background: linear-gradient(145deg, #0d3a7a, #061828);
+            border: 1px solid #2a5aaa;
+            border-radius: 4px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+
+        #ir .trim-pot {
+            width: 16px;
+            height: 16px;
+            background: radial-gradient(#88aaff, #3355aa);
+            border-radius: 50%;
+            border: 1px solid #aaccff;
+        }
+
+        /* ══════════════════════════════════════
+       Rain Sensor Pad
+    ══════════════════════════════════════ */
+        #rain-pad {
+            left: 680px;
+            top: 280px;
+            width: 140px;
+            height: 130px;
+        }
+
+        #rain-pad .comp-body {
+            width: 140px;
+            height: 130px;
+            background: linear-gradient(145deg, #1a2a3a, #0d1a28);
+            border: 2px solid #2a4a6a;
+        }
+
+        /* Interdigitated electrodes */
+        .electrode-lines {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 3px;
+            margin-top: 5px;
+        }
+
+        .e-line {
+            width: 2px;
+            height: 80px;
+            background: linear-gradient(180deg, #c8a000, #aa8800);
+            border-radius: 1px;
+        }
+
+        /* ══════════════════════════════════════
+       Rain Sensor Module
+    ══════════════════════════════════════ */
+        #rain-mod {
+            left: 860px;
+            top: 265px;
+            width: 85px;
+            height: 120px;
+        }
+
+        #rain-mod .comp-body {
+            width: 85px;
+            height: 120px;
+            background: linear-gradient(145deg, #0a2a5a, #051535);
+            border: 2px solid #1a4a9a;
+        }
+
+        #rain-mod .lm393 {
+            width: 50px;
+            height: 28px;
+            background: #1c1c1c;
+            border: 1px solid #444;
+            border-radius: 3px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+
+        #rain-mod .lm393 span {
+            font-size: 0.42rem;
+            color: #888;
+        }
+
+        #rain-mod .led-pair {
+            display: flex;
+            gap: 6px;
+            margin-top: 5px;
+        }
+
+        #rain-mod .led-g {
+            width: 7px;
+            height: 7px;
+            border-radius: 50%;
+            background: #00ff00;
+            box-shadow: 0 0 6px #0f0;
+        }
+
+        #rain-mod .led-r {
+            width: 7px;
+            height: 7px;
+            border-radius: 50%;
+            background: #ff2222;
+            box-shadow: 0 0 6px #f00;
+        }
+
+        /* ══════════════════════════════════════
+       ADXL345
+    ══════════════════════════════════════ */
+        #adxl {
+            left: 530px;
+            top: 580px;
+            width: 120px;
+            height: 90px;
+        }
+
+        #adxl .comp-body {
+            width: 120px;
+            height: 90px;
+            background: linear-gradient(145deg, #0a2a5a, #051535);
+            border: 2px solid #1a4a9a;
+        }
+
+        #adxl .ic-chip {
+            width: 55px;
+            height: 40px;
+            background: linear-gradient(145deg, #1c1c2e, #0d0d1a);
+            border: 1px solid #3a3a5a;
+            border-radius: 4px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+
+        #adxl .ic-chip span {
+            font-size: 0.45rem;
+            color: #aaa;
+        }
+
+        .ic-dot {
+            position: absolute;
+            top: 4px;
+            left: 4px;
+            width: 5px;
+            height: 5px;
+            background: #fff;
+            border-radius: 50%;
+            opacity: 0.5;
+        }
+
+        /* ══════════════════════════════════════
+       Buzzer
+    ══════════════════════════════════════ */
+        #buzzer {
+            left: 500px;
+            top: 148px;
+            width: 50px;
+            height: 50px;
+        }
+
+        #buzzer .comp-body {
+            width: 50px;
+            height: 50px;
+            background: radial-gradient(#2a2a2a, #111);
+            border: 2px solid #555;
+            border-radius: 50%;
+            box-shadow: 0 0 10px rgba(0, 0, 0, 0.8);
+        }
+
+        #buzzer .inner {
+            width: 20px;
+            height: 20px;
+            background: radial-gradient(#444, #222);
+            border: 1px solid #888;
+            border-radius: 50%;
+        }
+
+        /* ══════════════════════════════════════
+       VIA circles
+    ══════════════════════════════════════ */
+        .via {
+            position: absolute;
+            width: 10px;
+            height: 10px;
+            background: #c8a000;
+            border-radius: 50%;
+            border: 2px solid #ffd700;
+            z-index: 5;
+            box-shadow: 0 0 5px rgba(200, 160, 0, 0.4);
+        }
+
+        .via::after {
+            content: '';
+            position: absolute;
+            inset: 2px;
+            background: #333;
+            border-radius: 50%;
+        }
+
+        /* ══════════════════════════════════════
+       Legend / BOM panel
+    ══════════════════════════════════════ */
+        .legend {
+            width: 1100px;
+            margin-top: 20px;
+            background: #0a1f0a;
+            border: 1px solid #1a4a1a;
+            border-radius: 8px;
+            padding: 16px 24px;
+            display: flex;
+            gap: 30px;
+            flex-wrap: wrap;
+        }
+
+        .legend h3 {
+            font-family: 'Orbitron', sans-serif;
+            font-size: 0.75rem;
+            color: #3ddc84;
+            letter-spacing: 3px;
+            width: 100%;
+            border-bottom: 1px solid #1a4a1a;
+            padding-bottom: 8px;
+            margin-bottom: 6px;
+        }
+
+        .legend-item {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            font-size: 0.65rem;
+            color: #90b090;
+        }
+
+        .legend-dot {
+            width: 10px;
+            height: 10px;
+            border-radius: 2px;
+            flex-shrink: 0;
+        }
+
+        .trace-legend {
+            display: flex;
+            flex-direction: column;
+            gap: 5px;
+            width: 100%;
+        }
+
+        .trace-legend-row {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            font-size: 0.62rem;
+            color: #90b090;
+        }
+
+        .trace-line {
+            width: 30px;
+            height: 3px;
+            border-radius: 2px;
+        }
+
+        /* Pinout table */
+        .pinout-table {
+            width: 1100px;
+            margin-top: 14px;
+            border-collapse: collapse;
+            font-size: 0.62rem;
+            font-family: 'Share Tech Mono', monospace;
+        }
+
+        .pinout-table th {
+            background: #0d2a0d;
+            color: #3ddc84;
+            border: 1px solid #1a4a1a;
+            padding: 6px 12px;
+            text-align: left;
+            letter-spacing: 1px;
+        }
+
+        .pinout-table td {
+            border: 1px solid #132813;
+            padding: 5px 12px;
+            color: #90b090;
+        }
+
+        .pinout-table tr:nth-child(even) td {
+            background: #071507;
+        }
+
+        .pinout-table tr:hover td {
+            background: #0d2a0d;
+        }
+
+        .pinout-table .c-vcc {
+            color: #ff6666;
+        }
+
+        .pinout-table .c-gnd {
+            color: #888;
+        }
+
+        .pinout-table .c-sda {
+            color: #ff88ff;
+        }
+
+        .pinout-table .c-scl {
+            color: #ffcc44;
+        }
+
+        .pinout-table .c-out {
+            color: #44ffaa;
+        }
+
+        .pinout-table .c-sig {
+            color: #ff9944;
+        }
+
+        footer {
+            margin-top: 30px;
+            font-size: 0.6rem;
+            color: #2a4a2a;
+            letter-spacing: 2px;
+            padding-bottom: 20px;
+        }
+
+        @keyframes pulse-trace {
+
+            0%,
+            100% {
+                opacity: 1;
+            }
+
+            50% {
+                opacity: 0.6;
+            }
+        }
+
+        .animated-trace {
+            animation: pulse-trace 3s ease-in-out infinite;
+        }
+    </style>
+</head>
+
+<body>
+
+    <!-- HEADER -->
+    <header>
+        <div class="brand">&#9632; PCB DESIGNER PRO</div>
+        <div class="rev">REV 1.0 &nbsp;|&nbsp; ESP32 MULTI-SENSOR BOARD &nbsp;|&nbsp; 2-LAYER &nbsp;|&nbsp; FR4</div>
+    </header>
+
+    <div class="pcb-wrapper">
+        <div class="pcb-title">ESP32 Multi-Sensor Circuit Board</div>
+        <div class="pcb-subtitle">SCHEMATIC REF: MSB-ESP32-v1.0 &nbsp;●&nbsp; LAYER: TOP COPPER &nbsp;●&nbsp; SCALE: 1:1
+        </div>
+
+        <!-- ═══════════════════════════════════════════
+       PCB BOARD
+  ═══════════════════════════════════════════ -->
+        <div class="pcb-board" id="board">
+
+            <!-- Corner fiducials -->
+            <div class="fiducial tl"></div>
+            <div class="fiducial tr"></div>
+            <div class="fiducial bl"></div>
+            <div class="fiducial br"></div>
+
+            <!-- Mount holes -->
+            <div class="mount-hole" style="left:50px;top:50px"></div>
+            <div class="mount-hole" style="right:50px;top:50px"></div>
+            <div class="mount-hole" style="left:50px;bottom:50px"></div>
+            <div class="mount-hole" style="right:50px;bottom:50px"></div>
+
+            <!-- ═══════════ TRACE SVG ═══════════ -->
+            <svg class="traces" viewBox="0 0 1100 780" xmlns="http://www.w3.org/2000/svg">
+                <defs>
+                    <filter id="glow-green">
+                        <feGaussianBlur stdDeviation="3" result="blur" />
+                        <feMerge>
+                            <feMergeNode in="blur" />
+                            <feMergeNode in="SourceGraphic" />
+                        </feMerge>
+                    </filter>
+                    <filter id="glow-red">
+                        <feGaussianBlur stdDeviation="2" result="blur" />
+                        <feMerge>
+                            <feMergeNode in="blur" />
+                            <feMergeNode in="SourceGraphic" />
+                        </feMerge>
+                    </filter>
+                    <!-- Copper fill pattern -->
+                    <pattern id="copper" width="4" height="4" patternUnits="userSpaceOnUse">
+                        <rect width="4" height="4" fill="#c8a000" opacity="0.05" />
+                        <path d="M0,4 L4,0" stroke="#b89000" stroke-width="0.5" opacity="0.3" />
+                    </pattern>
+                </defs>
+
+                <!-- ── VCC Rails (red) ── -->
+                <!-- VL53L0X VCC → ESP32 3V3 -->
+                <path class="trace-glow-red animated-trace" d="M 200 308 L 320 308 L 320 270 L 380 270" />
+                <path class="trace-vcc" d="M 200 308 L 320 308 L 320 270 L 380 270" />
+
+                <!-- IR VCC → ESP32 VIN -->
+                <path class="trace-glow-red animated-trace" d="M 455 180 L 455 240" />
+                <path class="trace-vcc" d="M 455 180 L 455 240" />
+
+                <!-- Rain Module VCC → ESP32 3V3 -->
+                <path class="trace-glow-red" d="M 860 300 L 820 300 L 820 260 L 560 260 L 560 240" />
+                <path class="trace-vcc" d="M 860 300 L 820 300 L 820 260 L 560 260 L 560 240" />
+
+                <!-- ADXL345 VCC → ESP32 3V3 -->
+                <path class="trace-glow-red" d="M 530 600 L 515 600 L 515 540 L 540 540 L 540 520" />
+                <path class="trace-vcc" d="M 530 600 L 515 600 L 515 540 L 540 540 L 540 520" />
+
+                <!-- ── GND Rails (dark) ── -->
+                <!-- VL53L0X GND → ESP32 GND -->
+                <path class="trace-gnd" d="M 200 318 L 300 318 L 300 490 L 380 490" />
+                <!-- IR GND → ESP32 GND -->
+                <path class="trace-gnd" d="M 455 180 L 455 185 M 438 180 L 438 185" />
+                <!-- Rain mod GND -->
+                <path class="trace-gnd" d="M 860 315 L 840 315 L 840 480 L 560 480 L 560 520" />
+                <!-- ADXL GND -->
+                <path class="trace-gnd" d="M 530 610 L 510 610 L 510 550 L 545 550 L 545 520" />
+
+                <!-- ── I2C SDA (magenta) ── -->
+                <!-- VL53L0X SDA → ESP32 GPIO21 -->
+                <path class="trace-glow-pink animated-trace" d="M 200 338 L 280 338 L 280 400 L 380 400" />
+                <path class="trace-sda" d="M 200 338 L 280 338 L 280 400 L 380 400" />
+                <!-- ADXL SDA → ESP32 GPIO21 (shared I2C) -->
+                <path class="trace-sda" d="M 580 610 L 280 610 L 280 400" />
+
+                <!-- ── I2C SCL (yellow) ── -->
+                <!-- VL53L0X SCL → ESP32 GPIO22 -->
+                <path class="trace-glow-yel animated-trace" d="M 200 328 L 290 328 L 290 415 L 380 415" />
+                <path class="trace-scl" d="M 200 328 L 290 328 L 290 415 L 380 415" />
+                <!-- ADXL SCL → ESP32 GPIO22 (shared I2C) -->
+                <path class="trace-scl" d="M 590 610 L 290 610 L 290 415" />
+
+                <!-- ── IR OUT → ESP32 GPIO34 (green) ── -->
+                <path class="trace-glow-grn animated-trace" d="M 510 180 L 510 230 L 560 230 L 560 240" />
+                <path class="trace-out" d="M 510 180 L 510 230 L 560 230 L 560 240" />
+
+                <!-- ── Rain Sensor analog → ESP32 GPIO36 (orange) ── -->
+                <path class="trace-sig" d="M 860 330 L 835 330 L 835 460 L 556 460 L 556 520" />
+
+                <!-- ── ADXL INT1 → ESP32 GPIO35 ── -->
+                <path class="trace-data" d="M 600 610 L 600 570 L 558 570 L 558 520" />
+
+                <!-- ── XSHUT VL53 → ESP32 GPIO5 ── -->
+                <path class="trace-data" d="M 200 360 L 270 360 L 270 430 L 380 430" />
+
+                <!-- ── Buzzer → ESP32 GPIO26 ── -->
+                <path class="trace-sig" d="M 524 173 L 524 240 L 546 240" />
+
+                <!-- Copper pour fill hint (decorative) -->
+                <rect x="60" y="60" width="980" height="660" rx="8" fill="url(#copper)" opacity="0.4" />
+
+                <!-- Ground plane hatching -->
+                <rect x="60" y="60" width="980" height="660" rx="8" fill="none" stroke="#1a4a1a" stroke-width="0.5"
+                    opacity="0.3" />
+
+                <!-- Signal labels on traces -->
+                <text x="248" y="304" font-family="Share Tech Mono" font-size="8" fill="#ff6666">VCC</text>
+                <text x="248" y="336" font-family="Share Tech Mono" font-size="8" fill="#ff88ff">SDA</text>
+                <text x="248" y="325" font-family="Share Tech Mono" font-size="8" fill="#ffcc44">SCL</text>
+                <text x="516" y="210" font-family="Share Tech Mono" font-size="8" fill="#44ffaa">IR_OUT</text>
+                <text x="700" y="325" font-family="Share Tech Mono" font-size="8" fill="#ff9944">RAIN_A</text>
+                <text x="700" y="342" font-family="Share Tech Mono" font-size="8" fill="#888">GND</text>
+
+                <!-- VIA markers on shared nodes -->
+                <circle cx="280" cy="400" r="4" fill="#c8a000" stroke="#ffd700" stroke-width="1" opacity="0.9" />
+                <circle cx="280" cy="338" r="4" fill="#c8a000" stroke="#ffd700" stroke-width="1" opacity="0.9" />
+                <circle cx="290" cy="415" r="4" fill="#c8a000" stroke="#ffd700" stroke-width="1" opacity="0.9" />
+                <circle cx="560" cy="260" r="4" fill="#c8a000" stroke="#ffd700" stroke-width="1" opacity="0.9" />
+                <circle cx="820" cy="260" r="4" fill="#c8a000" stroke="#ffd700" stroke-width="1" opacity="0.9" />
+            </svg>
+
+            <!-- ═══════════════════
+         ESP32 NODE MCU
+    ═══════════════════ -->
+            <div class="component" id="esp32">
+                <div class="comp-body">
+                    <!-- Left pin header -->
+                    <div class="pin-row-left" style="gap:8.5px;">
+                        <div class="pad pad-sq"></div>
+                        <div class="pad pad-sq"></div>
+                        <div class="pad pad-sq"></div>
+                        <div class="pad pad-sq"></div>
+                        <div class="pad pad-sq"></div>
+                        <div class="pad pad-sq"></div>
+                        <div class="pad pad-sq"></div>
+                        <div class="pad pad-sq"></div>
+                        <div class="pad pad-sq"></div>
+                        <div class="pad pad-sq"></div>
+                        <div class="pad pad-sq"></div>
+                        <div class="pad pad-sq"></div>
+                        <div class="pad pad-sq"></div>
+                        <div class="pad pad-sq"></div>
+                        <div class="pad pad-sq"></div>
+                    </div>
+                    <!-- Right pin header -->
+                    <div class="pin-row-right" style="gap:8.5px;">
+                        <div class="pad pad-sq"></div>
+                        <div class="pad pad-sq"></div>
+                        <div class="pad pad-sq"></div>
+                        <div class="pad pad-sq"></div>
+                        <div class="pad pad-sq"></div>
+                        <div class="pad pad-sq"></div>
+                        <div class="pad pad-sq"></div>
+                        <div class="pad pad-sq"></div>
+                        <div class="pad pad-sq"></div>
+                        <div class="pad pad-sq"></div>
+                        <div class="pad pad-sq"></div>
+                        <div class="pad pad-sq"></div>
+                        <div class="pad pad-sq"></div>
+                        <div class="pad pad-sq"></div>
+                        <div class="pad pad-sq"></div>
+                    </div>
+                    <!-- Main ESP32 chip area -->
+                    <div class="chip-top"><span>ESP32-WROOM-32D</span></div>
+                    <div
+                        style="width:100px;height:18px;background:#1a1a3a;border:1px solid #2a2a6a;border-radius:3px;display:flex;align-items:center;justify-content:center;margin-bottom:4px;">
+                        <span style="font-size:0.45rem;color:#6666aa;letter-spacing:1px;">CP2102 USB</span>
+                    </div>
+                    <div class="usb"></div>
+                    <div class="btn-row">
+                        <div class="btn"></div>
+                        <div class="btn"></div>
+                    </div>
+                    <div class="led-row">
+                        <div class="led red"></div>
+                        <div class="led blue"></div>
+                    </div>
+                </div>
+                <div class="comp-label">NodeMCU-32S</div>
+                <div class="comp-ref">U1</div>
+            </div>
+
+            <!-- Pin labels for ESP32 -->
+            <div
+                style="position:absolute;left:340px;top:253px;font-size:0.42rem;font-family:'Share Tech Mono',monospace;color:#5a8a5a;line-height:1.65;">
+                3V3<br>GND<br>D15<br>D2<br>D4<br>RX2<br>TX2<br>D22<br>D21<br>D0<br>D1<br>D3<br>D10<br>D9<br>D8
+            </div>
+            <div
+                style="position:absolute;left:565px;top:253px;font-size:0.42rem;font-family:'Share Tech Mono',monospace;color:#5a8a5a;line-height:1.65;text-align:right;">
+                VIN<br>GND<br>D13<br>D12<br>D14<br>D27<br>D26<br>D25<br>D33<br>D32<br>D35<br>D34<br>D39<br>D38<br>D36
+            </div>
+
+            <!-- ═══════════════════
+         VL53L0X
+    ═══════════════════ -->
+            <div class="component" id="vl53">
+                <div class="comp-body">
+                    <div class="sensor-window"></div>
+                    <div style="font-size:0.48rem;color:#cc88ff;margin-top:4px;letter-spacing:1px;">VL53L0X</div>
+                    <div style="font-size:0.4rem;color:#9966cc;">ToF Distance</div>
+                    <!-- pads bottom -->
+                    <div style="display:flex;gap:6px;margin-top:6px;">
+                        <div class="pad"></div>
+                        <div class="pad"></div>
+                        <div class="pad"></div>
+                        <div class="pad"></div>
+                        <div class="pad"></div>
+                    </div>
+                    <div style="display:flex;gap:6px;margin-top:1px;font-size:0.38rem;color:#7a5a9a;">
+                        <span>VCC</span><span>GND</span><span>SCL</span><span>SDA</span><span>XS</span>
+                    </div>
+                </div>
+                <div class="comp-label">CJVL53L0XV2</div>
+                <div class="comp-ref">U2</div>
+            </div>
+
+            <!-- ═══════════════════
+         IR SENSOR
+    ═══════════════════ -->
+            <div class="component" id="ir">
+                <div class="comp-body">
+                    <div class="ir-led"></div>
+                    <div class="ir-body">
+                        <div class="trim-pot"></div>
+                    </div>
+                    <!-- pads -->
+                    <div style="display:flex;gap:8px;margin-top:8px;">
+                        <div class="pad"></div>
+                        <div class="pad"></div>
+                        <div class="pad"></div>
+                    </div>
+                    <div style="display:flex;gap:8px;margin-top:1px;font-size:0.38rem;color:#7a9acc;">
+                        <span>OUT</span><span>GND</span><span>VCC</span>
+                    </div>
+                </div>
+                <div class="comp-label">IR Sensor</div>
+                <div class="comp-ref">U3</div>
+            </div>
+
+            <!-- ═══════════════════
+         RAIN PAD
+    ═══════════════════ -->
+            <div class="component" id="rain-pad">
+                <div class="comp-body">
+                    <div style="font-size:0.45rem;color:#6699cc;letter-spacing:1px;margin-bottom:4px;">RAIN SENSING PAD
+                    </div>
+                    <div class="electrode-lines">
+                        <div class="e-line"></div>
+                        <div class="e-line"></div>
+                        <div class="e-line"></div>
+                        <div class="e-line"></div>
+                        <div class="e-line"></div>
+                        <div class="e-line"></div>
+                        <div class="e-line"></div>
+                        <div class="e-line"></div>
+                        <div class="e-line"></div>
+                        <div class="e-line"></div>
+                        <div class="e-line"></div>
+                        <div class="e-line"></div>
+                    </div>
+                    <div style="display:flex;gap:6px;margin-top:6px;">
+                        <div class="pad"></div>
+                        <div class="pad"></div>
+                    </div>
+                    <div style="display:flex;gap:12px;font-size:0.38rem;color:#5a7a9a;margin-top:1px;">
+                        <span>+</span><span>−</span>
+                    </div>
+                </div>
+                <div class="comp-label">Rain Sensing Pad</div>
+                <div class="comp-ref">SENS1</div>
+            </div>
+
+            <!-- ═══════════════════
+         RAIN MODULE
+    ═══════════════════ -->
+            <div class="component" id="rain-mod">
+                <div class="comp-body">
+                    <div class="lm393"><span>LM393</span></div>
+                    <div class="led-pair">
+                        <div class="led-g"></div>
+                        <div class="led-r"></div>
+                    </div>
+                    <div style="display:flex;flex-direction:column;gap:4px;margin-top:8px;">
+                        <div class="pad"></div>
+                        <div class="pad"></div>
+                        <div class="pad"></div>
+                        <div class="pad"></div>
+                    </div>
+                    <div style="font-size:0.38rem;color:#5a7aaa;margin-top:2px;text-align:center;">
+                        GND<br>VCC<br>D0<br>A0
+                    </div>
+                </div>
+                <div class="comp-label">Rain Module</div>
+                <div class="comp-ref">U4</div>
+            </div>
+
+            <!-- ═══════════════════
+         ADXL345
+    ═══════════════════ -->
+            <div class="component" id="adxl">
+                <div class="comp-body">
+                    <div class="ic-chip" style="position:relative;">
+                        <div class="ic-dot"></div>
+                        <span>ADXL345</span>
+                    </div>
+                    <!-- pads left -->
+                    <div style="display:flex;gap:5px;margin-top:8px;flex-wrap:wrap;justify-content:center;">
+                        <div class="pad"></div>
+                        <div class="pad"></div>
+                        <div class="pad"></div>
+                        <div class="pad"></div>
+                        <div class="pad"></div>
+                        <div class="pad"></div>
+                        <div class="pad"></div>
+                    </div>
+                    <div
+                        style="display:flex;gap:4px;font-size:0.36rem;color:#5a7aaa;margin-top:1px;flex-wrap:wrap;justify-content:center;">
+                        <span>GND</span><span>VCC</span><span>CS</span><span>I1</span><span>I2</span><span>SDA</span><span>SCL</span>
+                    </div>
+                </div>
+                <div class="comp-label">ADXL345 Accel</div>
+                <div class="comp-ref">U5</div>
+            </div>
+
+            <!-- ═══════════════════
+         BUZZER
+    ═══════════════════ -->
+            <div class="component" id="buzzer">
+                <div class="comp-body">
+                    <div class="inner"></div>
+                </div>
+                <div class="comp-label">BZ1</div>
+            </div>
+
+            <!-- VIAs (junction dots shown purely decoratively on board layer) -->
+            <div class="via" style="left:279px;top:396px"></div>
+            <div class="via" style="left:279px;top:333px"></div>
+            <div class="via" style="left:289px;top:410px"></div>
+            <div class="via" style="left:558px;top:254px"></div>
+            <div class="via" style="left:819px;top:254px"></div>
+            <div class="via" style="left:558px;top:476px"></div>
+
+            <!-- Board text silk screen -->
+            <div
+                style="position:absolute;bottom:28px;right:80px;font-size:0.55rem;color:#1a5a1a;letter-spacing:2px;font-family:'Share Tech Mono',monospace;">
+                MSB-ESP32-v1.0 · 2024 · FR4 · 2L
+            </div>
+            <div
+                style="position:absolute;bottom:28px;left:80px;font-size:0.55rem;color:#1a5a1a;letter-spacing:2px;font-family:'Share Tech Mono',monospace;">
+                ⚠ ESD SENSITIVE · HANDLE WITH CARE
+            </div>
+
+        </div><!-- /pcb-board -->
+
+        <!-- ═══════════════════
+       TRACE LEGEND
+  ═══════════════════ -->
+        <div class="legend">
+            <h3>BILL OF MATERIALS & NET LEGEND</h3>
+            <div style="flex:1;min-width:200px;">
+                <div style="font-size:0.65rem;color:#3ddc84;letter-spacing:2px;margin-bottom:8px;">COMPONENTS</div>
+                <div class="legend-item">
+                    <div class="legend-dot" style="background:#1a1a2e;border:1px solid #3a3a6a;"></div> U1 — ESP32
+                    NodeMCU-32S (Espressif)
+                </div>
+                <div class="legend-item">
+                    <div class="legend-dot" style="background:#3a1a5a;border:1px solid #6a2a9a;"></div> U2 — CJVL53L0XV2
+                    ToF Distance Sensor
+                </div>
+                <div class="legend-item">
+                    <div class="legend-dot" style="background:#0a2a5a;border:1px solid #1a4a9a;"></div> U3 — IR Obstacle
+                    Sensor Module
+                </div>
+                <div class="legend-item">
+                    <div class="legend-dot" style="background:#1a2a3a;border:1px solid #2a4a6a;"></div> SENS1 — Rain
+                    Sensing Pad (Aluminum)
+                </div>
+                <div class="legend-item">
+                    <div class="legend-dot" style="background:#0a2a5a;border:1px solid #1a4a9a;"></div> U4 — Rain
+                    Detector Module (LM393)
+                </div>
+                <div class="legend-item">
+                    <div class="legend-dot" style="background:#0a2a5a;border:1px solid #1a4a9a;"></div> U5 — ADXL345
+                    3-Axis Accelerometer
+                </div>
+                <div class="legend-item">
+                    <div class="legend-dot" style="background:#2a2a2a;border:1px solid #555;border-radius:50%"></div>
+                    BZ1 — Passive Buzzer 5V
+                </div>
+            </div>
+            <div style="flex:1;min-width:200px;">
+                <div style="font-size:0.65rem;color:#3ddc84;letter-spacing:2px;margin-bottom:8px;">NET COLORS</div>
+                <div class="trace-legend">
+                    <div class="trace-legend-row">
+                        <div class="trace-line" style="background:#ff4444;"></div> VCC — Power 3.3V / 5V
+                    </div>
+                    <div class="trace-legend-row">
+                        <div class="trace-line" style="background:#555;"></div> GND — Ground
+                    </div>
+                    <div class="trace-legend-row">
+                        <div class="trace-line" style="background:#ff44ff;"></div> SDA — I²C Data (GPIO21)
+                    </div>
+                    <div class="trace-legend-row">
+                        <div class="trace-line" style="background:#ffaa00;"></div> SCL — I²C Clock (GPIO22)
+                    </div>
+                    <div class="trace-legend-row">
+                        <div class="trace-line" style="background:#44ffaa;"></div> OUT — IR Digital Out (GPIO34)
+                    </div>
+                    <div class="trace-legend-row">
+                        <div class="trace-line" style="background:#ff8844;"></div> SIG — Analog / Misc Signal
+                    </div>
+                    <div class="trace-legend-row">
+                        <div class="trace-line" style="background:#4488ff;"></div> DATA — Digital I/O
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- ═══════════════════
+       PINOUT TABLE
+  ═══════════════════ -->
+        <table class="pinout-table">
+            <thead>
+                <tr>
+                    <th>Component</th>
+                    <th>Pin / Net</th>
+                    <th>ESP32 GPIO</th>
+                    <th>Net Type</th>
+                    <th>Notes</th>
+                </tr>
+            </thead>
+            <tbody>
+                <tr>
+                    <td>U2 VL53L0X</td>
+                    <td>VCC</td>
+                    <td class="c-vcc">3V3</td>
+                    <td class="c-vcc">POWER</td>
+                    <td>3.3V power rail</td>
+                </tr>
+                <tr>
+                    <td>U2 VL53L0X</td>
+                    <td>GND</td>
+                    <td class="c-gnd">GND</td>
+                    <td class="c-gnd">GROUND</td>
+                    <td>Common ground</td>
+                </tr>
+                <tr>
+                    <td>U2 VL53L0X</td>
+                    <td>SCL</td>
+                    <td class="c-scl">GPIO22</td>
+                    <td class="c-scl">I²C CLK</td>
+                    <td>Shared I²C bus</td>
+                </tr>
+                <tr>
+                    <td>U2 VL53L0X</td>
+                    <td>SDA</td>
+                    <td class="c-sda">GPIO21</td>
+                    <td class="c-sda">I²C DATA</td>
+                    <td>Shared I²C bus</td>
+                </tr>
+                <tr>
+                    <td>U2 VL53L0X</td>
+                    <td>XSHUT</td>
+                    <td class="c-sig">GPIO5</td>
+                    <td class="c-sig">DIGITAL</td>
+                    <td>Shutdown control</td>
+                </tr>
+                <tr>
+                    <td>U3 IR Sensor</td>
+                    <td>VCC</td>
+                    <td class="c-vcc">VIN/3V3</td>
+                    <td class="c-vcc">POWER</td>
+                    <td>5V or 3.3V</td>
+                </tr>
+                <tr>
+                    <td>U3 IR Sensor</td>
+                    <td>GND</td>
+                    <td class="c-gnd">GND</td>
+                    <td class="c-gnd">GROUND</td>
+                    <td>Common ground</td>
+                </tr>
+                <tr>
+                    <td>U3 IR Sensor</td>
+                    <td>OUT</td>
+                    <td class="c-out">GPIO34</td>
+                    <td class="c-out">DIGITAL IN</td>
+                    <td>Active LOW detection</td>
+                </tr>
+                <tr>
+                    <td>U4 Rain Module</td>
+                    <td>VCC</td>
+                    <td class="c-vcc">3V3</td>
+                    <td class="c-vcc">POWER</td>
+                    <td>3.3V power rail</td>
+                </tr>
+                <tr>
+                    <td>U4 Rain Module</td>
+                    <td>GND</td>
+                    <td class="c-gnd">GND</td>
+                    <td class="c-gnd">GROUND</td>
+                    <td>Common ground</td>
+                </tr>
+                <tr>
+                    <td>U4 Rain Module</td>
+                    <td>D0</td>
+                    <td class="c-out">GPIO35</td>
+                    <td class="c-out">DIGITAL IN</td>
+                    <td>Digital rain detect</td>
+                </tr>
+                <tr>
+                    <td>U4 Rain Module</td>
+                    <td>A0</td>
+                    <td class="c-sig">GPIO36</td>
+                    <td class="c-sig">ANALOG IN</td>
+                    <td>Analog rain level</td>
+                </tr>
+                <tr>
+                    <td>U5 ADXL345</td>
+                    <td>VCC</td>
+                    <td class="c-vcc">3V3</td>
+                    <td class="c-vcc">POWER</td>
+                    <td>3.3V power rail</td>
+                </tr>
+                <tr>
+                    <td>U5 ADXL345</td>
+                    <td>GND</td>
+                    <td class="c-gnd">GND</td>
+                    <td class="c-gnd">GROUND</td>
+                    <td>Common ground</td>
+                </tr>
+                <tr>
+                    <td>U5 ADXL345</td>
+                    <td>SCL</td>
+                    <td class="c-scl">GPIO22</td>
+                    <td class="c-scl">I²C CLK</td>
+                    <td>Shared I²C bus</td>
+                </tr>
+                <tr>
+                    <td>U5 ADXL345</td>
+                    <td>SDA</td>
+                    <td class="c-sda">GPIO21</td>
+                    <td class="c-sda">I²C DATA</td>
+                    <td>Shared I²C bus</td>
+                </tr>
+                <tr>
+                    <td>U5 ADXL345</td>
+                    <td>INT1</td>
+                    <td class="c-sig">GPIO32</td>
+                    <td class="c-sig">DIGITAL IN</td>
+                    <td>Interrupt 1</td>
+                </tr>
+                <tr>
+                    <td>BZ1 Buzzer</td>
+                    <td>+</td>
+                    <td class="c-sig">GPIO26</td>
+                    <td class="c-sig">DIGITAL OUT</td>
+                    <td>PWM tone output</td>
+                </tr>
+                <tr>
+                    <td>BZ1 Buzzer</td>
+                    <td>−</td>
+                    <td class="c-gnd">GND</td>
+                    <td class="c-gnd">GROUND</td>
+                    <td>Common ground</td>
+                </tr>
+            </tbody>
+        </table>
+
+    </div><!-- /pcb-wrapper -->
+
+    <footer>PCB DIAGRAM — ESP32 MULTI-SENSOR BOARD — REV 1.0 — GENERATED 2024</footer>
+
+</body>
+
+</html>

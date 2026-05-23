@@ -1,0 +1,18 @@
+[Unit]
+Description=NayanSathi Smart Glasses - Object Detection
+After=network.target bluetooth.target sound.target
+
+[Service]
+Type=simple
+User=pi
+WorkingDirectory=/home/pi/NayanSathi
+ExecStart=/usr/bin/python3 /home/pi/NayanSathi/nayansathi.py
+Restart=on-failure
+RestartSec=10
+StandardOutput=journal
+StandardError=journal
+Environment=PYTHONUNBUFFERED=1
+Environment=DISPLAY=:0
+
+[Install]
+WantedBy=multi-user.target

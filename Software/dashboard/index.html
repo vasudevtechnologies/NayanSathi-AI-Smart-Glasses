@@ -1,0 +1,2183 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width,initial-scale=1">
+    <title>NayanSathi · Smart Glasses Dashboard</title>
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/xterm@5.3.0/css/xterm.css">
+    <script src="https://cdn.jsdelivr.net/npm/xterm@5.3.0/lib/xterm.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/xterm-addon-fit@0.8.0/lib/xterm-addon-fit.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/@tensorflow/tfjs@4.20.0/dist/tf.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/@tensorflow-models/coco-ssd@2.2.3/dist/coco-ssd.min.js"></script>
+    <link
+        href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;600&family=Outfit:wght@400;600;700;900&display=swap"
+        rel="stylesheet">
+    <style>
+        * {
+            box-sizing: border-box;
+            margin: 0;
+            padding: 0
+        }
+
+        :root {
+            --bg: #06090f;
+            --s1: #0b1018;
+            --s2: #0f1622;
+            --brd: rgba(0, 212, 255, .1);
+            --ac: #00d4ff;
+            --p: #7c3aed;
+            --gr: #10b981;
+            --rd: #ef4444;
+            --ye: #f59e0b;
+            --tx: #ddeeff;
+            --mu: #4d7a94;
+            --tx2: #8ab4cc
+        }
+
+        html,
+        body {
+            height: 100%;
+            overflow: hidden;
+            font-family: 'Outfit', sans-serif;
+            background: var(--bg);
+            color: var(--tx);
+            font-size: 13px
+        }
+
+        .shell {
+            display: grid;
+            grid-template-rows: 46px 1fr 26px;
+            height: 100vh
+        }
+
+        /* HEADER */
+        header {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            padding: 0 14px;
+            background: var(--s1);
+            border-bottom: 1px solid var(--brd)
+        }
+
+        .logo {
+            display: flex;
+            align-items: center;
+            gap: 8px
+        }
+
+        .lbx {
+            width: 28px;
+            height: 28px;
+            background: linear-gradient(135deg, var(--ac), var(--p));
+            border-radius: 7px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 15px;
+            flex-shrink: 0
+        }
+
+        .lname {
+            font-weight: 900;
+            font-size: .9rem
+        }
+
+        .lsub {
+            font-size: .55rem;
+            color: var(--mu);
+            letter-spacing: 1.4px;
+            text-transform: uppercase
+        }
+
+        .sp {
+            flex: 1
+        }
+
+        .badge {
+            display: flex;
+            align-items: center;
+            gap: 5px;
+            padding: 4px 11px;
+            border-radius: 18px;
+            border: 1px solid var(--brd);
+            font-size: .62rem;
+            font-weight: 700;
+            letter-spacing: .8px
+        }
+
+        .bd {
+            width: 6px;
+            height: 6px;
+            border-radius: 50%;
+            background: var(--rd);
+            flex-shrink: 0
+        }
+
+        .badge.on .bd {
+            background: var(--gr);
+            animation: pulse 2s infinite
+        }
+
+        .badge.on {
+            border-color: rgba(16, 185, 129, .3)
+        }
+
+        @keyframes pulse {
+
+            0%,
+            100% {
+                opacity: 1
+            }
+
+            50% {
+                opacity: .4
+            }
+        }
+
+        /* MAIN GRID */
+        .main-area {
+            display: grid;
+            grid-template-columns: 205px 1fr 235px;
+            overflow: hidden
+        }
+
+        aside {
+            display: flex;
+            flex-direction: column;
+            overflow-y: auto;
+            background: var(--s1);
+            border-right: 1px solid var(--brd)
+        }
+
+        aside.right {
+            border-right: none;
+            border-left: 1px solid var(--brd)
+        }
+
+        .sec {
+            padding: 12px;
+            border-bottom: 1px solid var(--brd);
+            flex-shrink: 0
+        }
+
+        .slbl {
+            font-size: .58rem;
+            color: var(--mu);
+            text-transform: uppercase;
+            letter-spacing: 1.2px;
+            margin-bottom: 8px;
+            font-weight: 700
+        }
+
+        /* INPUTS */
+        .ig {
+            display: flex;
+            flex-direction: column;
+            gap: 3px;
+            margin-bottom: 6px
+        }
+
+        .ig label {
+            font-size: .57rem;
+            color: var(--mu);
+            letter-spacing: .7px;
+            text-transform: uppercase
+        }
+
+        .ig input {
+            background: rgba(0, 212, 255, .04);
+            border: 1px solid var(--brd);
+            border-radius: 5px;
+            padding: 6px 8px;
+            color: var(--tx);
+            font-size: .72rem;
+            font-family: 'JetBrains Mono', monospace;
+            outline: none;
+            width: 100%;
+            transition: border .2s
+        }
+
+        .ig input:focus {
+            border-color: rgba(0, 212, 255, .4)
+        }
+
+        /* BUTTONS */
+        .btn {
+            width: 100%;
+            padding: 7px 10px;
+            border-radius: 6px;
+            border: none;
+            cursor: pointer;
+            font-weight: 700;
+            font-size: .7rem;
+            font-family: 'Outfit', sans-serif;
+            letter-spacing: .3px;
+            transition: all .15s;
+            margin-top: 3px
+        }
+
+        .btn:disabled {
+            opacity: .45;
+            cursor: not-allowed
+        }
+
+        .bp {
+            background: linear-gradient(135deg, rgba(0, 212, 255, .16), rgba(0, 212, 255, .06));
+            border: 1px solid rgba(0, 212, 255, .28);
+            color: var(--ac)
+        }
+
+        .bp:hover:not(:disabled) {
+            background: linear-gradient(135deg, rgba(0, 212, 255, .26), rgba(0, 212, 255, .12));
+            border-color: var(--ac)
+        }
+
+        .bg {
+            background: rgba(255, 255, 255, .04);
+            border: 1px solid var(--brd);
+            color: var(--tx2)
+        }
+
+        .bg:hover:not(:disabled) {
+            background: rgba(255, 255, 255, .08);
+            border-color: rgba(255, 255, 255, .18)
+        }
+
+        .bde {
+            background: linear-gradient(135deg, rgba(124, 58, 237, .16), rgba(124, 58, 237, .06));
+            border: 1px solid rgba(124, 58, 237, .32);
+            color: #a78bfa
+        }
+
+        .bde:hover:not(:disabled) {
+            border-color: #a78bfa;
+            background: linear-gradient(135deg, rgba(124, 58, 237, .28), rgba(124, 58, 237, .12))
+        }
+
+        .brd {
+            background: rgba(239, 68, 68, .07);
+            border: 1px solid rgba(239, 68, 68, .22);
+            color: var(--rd)
+        }
+
+        .brd:hover:not(:disabled) {
+            background: rgba(239, 68, 68, .14)
+        }
+
+        /* QUICK CMDS */
+        .qc {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            padding: 7px 9px;
+            border-radius: 6px;
+            border: 1px solid var(--brd);
+            background: rgba(0, 212, 255, .02);
+            cursor: pointer;
+            margin-bottom: 4px;
+            transition: all .14s
+        }
+
+        .qc:hover {
+            background: rgba(0, 212, 255, .07);
+            border-color: rgba(0, 212, 255, .22)
+        }
+
+        .qi {
+            font-size: 1rem
+        }
+
+        .qt {
+            font-size: .68rem;
+            font-weight: 600
+        }
+
+        .qs {
+            font-size: .56rem;
+            color: var(--mu)
+        }
+
+        /* CENTER */
+        .center {
+            display: flex;
+            flex-direction: column;
+            overflow: hidden
+        }
+
+        .camp {
+            flex: 0 0 82%;
+            display: flex;
+            flex-direction: column;
+            border-bottom: 1px solid var(--brd);
+            min-height: 0
+        }
+
+        .ctbar {
+            display: flex;
+            align-items: center;
+            gap: 5px;
+            padding: 6px 11px;
+            background: var(--s1);
+            border-bottom: 1px solid var(--brd);
+            flex-shrink: 0
+        }
+
+        .ctitle {
+            flex: 1;
+            font-size: .64rem;
+            color: var(--mu);
+            font-family: 'JetBrains Mono', monospace;
+            letter-spacing: .7px
+        }
+
+        .tbtn {
+            padding: 3px 9px;
+            border-radius: 4px;
+            background: rgba(0, 212, 255, .06);
+            border: 1px solid var(--brd);
+            color: var(--ac);
+            font-size: .62rem;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all .14s;
+            font-family: 'Outfit', sans-serif
+        }
+
+        .tbtn:hover {
+            background: rgba(0, 212, 255, .13);
+            border-color: var(--ac)
+        }
+
+        /* CAMERA */
+        .cambody {
+            flex: 1;
+            position: relative;
+            background: #000;
+            overflow: hidden;
+            min-height: 0
+        }
+
+        #camImg {
+            width: 100%;
+            height: 100%;
+            object-fit: contain;
+            display: block;
+            image-rendering: auto;
+            will-change: transform;
+            /* GPU compositing — no layout repaint per frame */
+            transform: rotate(-90deg)
+                /* camera on left temple — sideways mount */
+        }
+
+        #detCanvas {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            pointer-events: none;
+            z-index: 4;
+            will-change: transform;
+            transform: rotate(-90deg)
+                /* matches camImg */
+        }
+
+        #camFrame {
+            width: 100%;
+            height: 100%;
+            border: none;
+            display: none
+        }
+
+        .overlay {
+            position: absolute;
+            inset: 0;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            gap: 9px;
+            background: rgba(6, 9, 15, .95);
+            z-index: 5
+        }
+
+        .overlay.hide {
+            display: none
+        }
+
+        .scan-line {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 2px;
+            background: linear-gradient(90deg, transparent, var(--ac), transparent);
+            animation: scan 3s ease-in-out infinite;
+            opacity: .4;
+            z-index: 3;
+            pointer-events: none
+        }
+
+        .cor {
+            position: absolute;
+            width: 16px;
+            height: 16px;
+            z-index: 3;
+            pointer-events: none
+        }
+
+        .cor.tl {
+            top: 8px;
+            left: 8px;
+            border-top: 2px solid var(--ac);
+            border-left: 2px solid var(--ac)
+        }
+
+        .cor.tr {
+            top: 8px;
+            right: 8px;
+            border-top: 2px solid var(--ac);
+            border-right: 2px solid var(--ac)
+        }
+
+        .cor.bl {
+            bottom: 8px;
+            left: 8px;
+            border-bottom: 2px solid var(--ac);
+            border-left: 2px solid var(--ac)
+        }
+
+        .cor.br {
+            bottom: 8px;
+            right: 8px;
+            border-bottom: 2px solid var(--ac);
+            border-right: 2px solid var(--ac)
+        }
+
+        .lbadge {
+            position: absolute;
+            top: 10px;
+            right: 12px;
+            font-size: .55rem;
+            color: var(--gr);
+            font-weight: 700;
+            letter-spacing: 1.4px;
+            background: rgba(16, 185, 129, .1);
+            border: 1px solid rgba(16, 185, 129, .28);
+            padding: 2px 7px;
+            border-radius: 10px;
+            z-index: 5;
+            animation: pulse 2s infinite
+        }
+
+        @keyframes scan {
+            0% {
+                top: 0
+            }
+
+            50% {
+                top: calc(100% - 2px)
+            }
+
+            100% {
+                top: 0
+            }
+        }
+
+        /* TERMINAL */
+        .termp {
+            flex: 1;
+            display: flex;
+            flex-direction: column;
+            min-height: 0
+        }
+
+        .termt {
+            display: flex;
+            align-items: center;
+            gap: 5px;
+            padding: 5px 11px;
+            background: var(--s1);
+            border-bottom: 1px solid var(--brd);
+            flex-shrink: 0
+        }
+
+        .dots {
+            display: flex;
+            gap: 4px
+        }
+
+        .dot {
+            width: 9px;
+            height: 9px;
+            border-radius: 50%
+        }
+
+        #tw {
+            flex: 1;
+            overflow: hidden;
+            background: #06090f;
+            padding: 3px;
+            min-height: 0
+        }
+
+        #wel {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            height: 100%;
+            gap: 5px;
+            color: var(--mu)
+        }
+
+        #wel h3 {
+            color: var(--ac);
+            font-size: .84rem
+        }
+
+        #wel p {
+            font-size: .65rem
+        }
+
+        #xel {
+            height: 100%
+        }
+
+        /* RIGHT STATS */
+        .sc {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            padding: 7px 9px;
+            background: rgba(0, 212, 255, .03);
+            border: 1px solid var(--brd);
+            border-radius: 6px;
+            margin-bottom: 5px
+        }
+
+        .si {
+            font-size: 1rem;
+            flex-shrink: 0
+        }
+
+        .sinfo {
+            flex: 1;
+            min-width: 0
+        }
+
+        .slb {
+            font-size: .55rem;
+            color: var(--mu);
+            text-transform: uppercase;
+            letter-spacing: .9px
+        }
+
+        .sv {
+            font-size: .85rem;
+            font-weight: 700;
+            font-family: 'JetBrains Mono', monospace;
+            color: var(--ac)
+        }
+
+        .bar {
+            height: 3px;
+            background: rgba(255, 255, 255, .05);
+            border-radius: 2px;
+            overflow: hidden;
+            margin-top: 2px
+        }
+
+        .bf {
+            height: 100%;
+            border-radius: 2px;
+            background: linear-gradient(90deg, var(--ac), var(--p));
+            transition: width .5s
+        }
+
+        /* YOLO PANEL */
+        .ypanel {
+            background: rgba(99, 102, 241, .07);
+            border: 1px solid rgba(99, 102, 241, .2);
+            border-radius: 7px;
+            padding: 8px;
+            margin-bottom: 7px;
+            flex-shrink: 0
+        }
+
+        .ystat {
+            font-size: .58rem;
+            color: var(--mu);
+            margin-bottom: 6px;
+            font-family: 'JetBrains Mono', monospace;
+            overflow: hidden;
+            text-overflow: ellipsis;
+            white-space: nowrap
+        }
+
+        .ygrid {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 4px
+        }
+
+        @keyframes wv {
+
+            0%,
+            100% {
+                transform: scaleY(.3);
+            }
+
+            50% {
+                transform: scaleY(1);
+            }
+        }
+
+        /* DET LOG */
+        .detlog {
+            flex: 1;
+            overflow-y: auto;
+            display: flex;
+            flex-direction: column;
+            gap: 4px
+        }
+
+        .de {
+            display: flex;
+            align-items: center;
+            gap: 6px;
+            padding: 6px 9px;
+            background: rgba(0, 212, 255, .03);
+            border: 1px solid var(--brd);
+            border-radius: 5px;
+            font-size: .68rem;
+            animation: fi .2s ease
+        }
+
+        @keyframes fi {
+            from {
+                opacity: 0;
+                transform: translateY(-5px)
+            }
+
+            to {
+                opacity: 1;
+                transform: none
+            }
+        }
+
+        .dlb {
+            flex: 1;
+            font-weight: 700
+        }
+
+        .dconf {
+            color: var(--gr);
+            font-family: 'JetBrains Mono', monospace;
+            font-size: .62rem;
+            font-weight: 600
+        }
+
+        .dtime {
+            color: var(--mu);
+            font-size: .56rem;
+            font-family: 'JetBrains Mono', monospace;
+            margin-left: auto
+        }
+
+        .dempty {
+            font-size: .65rem;
+            color: var(--mu);
+            text-align: center;
+            padding: 18px;
+            line-height: 1.8
+        }
+
+        /* RESOLUTION GRID */
+        .resgrid {
+            display: grid;
+            grid-template-columns: 1fr 1fr 1fr;
+            gap: 3px
+        }
+
+        .resgrid .btn {
+            font-size: .54rem;
+            padding: 4px 2px;
+            margin-top: 0;
+            text-align: center
+        }
+
+        /* TUNNEL BOX */
+        .tbox {
+            background: rgba(16, 185, 129, .05);
+            border: 1px solid rgba(16, 185, 129, .18);
+            border-radius: 6px;
+            padding: 8px;
+            margin-top: 6px;
+            font-size: .63rem;
+            word-break: break-all;
+            line-height: 1.7
+        }
+
+        /* CONTEXT MENU */
+        #ctx {
+            position: fixed;
+            display: none;
+            background: var(--s2);
+            border: 1px solid var(--brd);
+            border-radius: 7px;
+            padding: 4px;
+            z-index: 999;
+            min-width: 145px;
+            box-shadow: 0 8px 32px rgba(0, 0, 0, .5)
+        }
+
+        #ctx.show {
+            display: block
+        }
+
+        .ci {
+            padding: 6px 11px;
+            border-radius: 4px;
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            gap: 7px;
+            font-size: .7rem
+        }
+
+        .ci:hover {
+            background: rgba(0, 212, 255, .1);
+            color: var(--ac)
+        }
+
+        /* TOAST */
+        #toast {
+            position: fixed;
+            bottom: 38px;
+            right: 14px;
+            padding: 8px 14px;
+            border-radius: 7px;
+            font-size: .73rem;
+            font-weight: 600;
+            transform: translateY(10px);
+            opacity: 0;
+            transition: all .25s;
+            z-index: 1000;
+            pointer-events: none
+        }
+
+        #toast.show {
+            transform: none;
+            opacity: 1
+        }
+
+        #toast.s {
+            background: rgba(16, 185, 129, .16);
+            border: 1px solid rgba(16, 185, 129, .38);
+            color: var(--gr)
+        }
+
+        #toast.e {
+            background: rgba(239, 68, 68, .16);
+            border: 1px solid rgba(239, 68, 68, .38);
+            color: var(--rd)
+        }
+
+        #toast.i {
+            background: rgba(0, 212, 255, .1);
+            border: 1px solid rgba(0, 212, 255, .28);
+            color: var(--ac)
+        }
+
+        /* STATUS BAR */
+        .sbar {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            padding: 0 12px;
+            background: var(--s1);
+            border-top: 1px solid var(--brd);
+            font-size: .6rem;
+            color: var(--mu)
+        }
+
+        ::-webkit-scrollbar {
+            width: 3px
+        }
+
+        ::-webkit-scrollbar-thumb {
+            background: var(--mu);
+            border-radius: 3px
+        }
+    </style>
+</head>
+
+<body>
+    <div class="shell">
+
+        <header>
+            <div class="logo">
+                <div class="lbx">👁️</div>
+                <div>
+                    <div class="lname">NayanSathi</div>
+                    <div class="lsub">Smart Glasses · Pi 4 · ESP32-CAM · YOLO</div>
+                </div>
+            </div>
+            <div class="sp"></div>
+            <div class="badge" id="camBadge">
+                <div class="bd" id="camDot"></div><span>CAM 192.168.137.36</span>
+            </div>
+            <div class="badge" id="piBadge">
+                <div class="bd"></div><span id="piTxt">PI OFFLINE</span>
+            </div>
+        </header>
+
+        <div class="main-area">
+
+            <!-- LEFT -->
+            <aside>
+                <div class="sec">
+                    <div class="slbl">SSH · Raspberry Pi 4</div>
+                    <div class="ig"><label>🌐 IP Address</label><input id="piHost" value="192.168.137.40"></div>
+                    <div class="ig"><label>👤 Username</label><input id="piUser" value="pi"></div>
+                    <div class="ig"><label>🔑 Password</label><input id="piPass" type="password" value="raspberry">
+                    </div>
+                    <button class="btn bp" id="connBtn" onclick="sshConnect()">⚡ Connect to Pi</button>
+                    <button class="btn brd" id="discBtn" style="display:none" onclick="sshDisconnect()">✖
+                        Disconnect</button>
+                    <button class="btn bg" onclick="term.clear()" style="margin-top:3px">🗑 Clear Terminal</button>
+                </div>
+
+                <!-- Deploy section REMOVED -->
+
+                <div class="sec">
+                    <div class="slbl">📷 Camera</div>
+                    <div class="ig"><label>Stream URL</label><input id="camUrl" value="http://192.168.137.36"
+                            oninput="updateCamTitle()"></div>
+                    <button class="btn bp" onclick="reloadCam()">🔄 Reload Feed</button>
+                    <button class="btn bg" onclick="toggleCamMode()">⬜ Switch Mode</button>
+                    <button class="btn bg" onclick="window.open(document.getElementById('camUrl').value,'_blank')">↗
+                        Open in Tab</button>
+
+                    <!-- Brightness / Intensity -->
+                    <div class="slbl" style="margin-top:10px">� Brightness</div>
+                    <div style="display:flex;align-items:center;gap:6px;margin-top:4px">
+                        <span style="font-size:.6rem;color:var(--mu)">🌑</span>
+                        <input type="range" id="camBright" min="-2" max="2" step="1" value="1"
+                            style="flex:1;accent-color:var(--ac)" oninput="setCamBrightness(this.value)">
+                        <span style="font-size:.6rem;color:var(--mu)">☀️</span>
+                    </div>
+                    <div id="brightLabel" style="text-align:center;font-size:.56rem;color:var(--mu);margin-top:2px">
+                        Brightness: 1</div>
+
+                    <!-- Contrast -->
+                    <div class="slbl" style="margin-top:8px">🎨 Contrast</div>
+                    <div style="display:flex;align-items:center;gap:6px;margin-top:4px">
+                        <span style="font-size:.6rem;color:var(--mu)">◼</span>
+                        <input type="range" id="camContrast" min="-2" max="2" step="1" value="0"
+                            style="flex:1;accent-color:#f59e0b" oninput="setCamContrast(this.value)">
+                        <span style="font-size:.6rem;color:var(--mu)">�</span>
+                    </div>
+                    <div id="contrastLabel" style="text-align:center;font-size:.56rem;color:var(--mu);margin-top:2px">
+                        Contrast: 0</div>
+
+                    <!-- Flash LED -->
+                    <button class="btn bg" style="margin-top:6px" onclick="toggleFlash()" id="flashBtn">🔦 Flash
+                        OFF</button>
+                </div>
+
+                <div class="sec">
+                    <div class="slbl">Quick Commands</div>
+                    <div class="qc" onclick="qcmd('vcgencmd measure_temp&&free -h&&df -h')"><span class="qi">🌡️</span>
+                        <div>
+                            <div class="qt">Pi Health</div>
+                            <div class="qs">Temp · RAM · Disk</div>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="sec">
+                    <div class="slbl">🎧 Bluetooth</div>
+                    <button class="btn bg" id="btBtn" onclick="connectBT()">🎧 Connect Airdopes 141</button>
+                    <div id="btStatus" style="font-size:.58rem;color:var(--mu);margin-top:5px"></div>
+                    <!-- Voice test -->
+                    <div style="display:flex;gap:4px;margin-top:6px;align-items:center">
+                        <input id="voiceText" type="text" value="NayanSathi is online" style="flex:1;background:var(--s2);border:1px solid var(--bd);border-radius:6px;
+                                   padding:4px 8px;font-size:.62rem;color:var(--tx);outline:none"
+                            placeholder="Text to speak…" />
+                        <button class="btn bg" id="voiceBtn" onclick="voiceTest()"
+                            style="padding:5px 8px;font-size:.65rem;white-space:nowrap">🔊 Test</button>
+                    </div>
+                    <div id="voiceStatus" style="font-size:.56rem;color:var(--mu);margin-top:3px"></div>
+                </div>
+
+
+                <div class="sec">
+                    <div class="slbl">🌐 Public Share</div>
+                    <button class="btn bg" id="cfBtn" onclick="startTunnel()">☁️ Share via Cloudflare</button>
+                    <div id="tunnelBox" style="display:none" class="tbox">
+                        <div style="color:var(--mu);font-size:.56rem;margin-bottom:3px">PUBLIC URL:</div>
+                        <a id="tunnelUrl" href="#" target="_blank" style="color:var(--gr);text-decoration:none">⏳
+                            Connecting…</a>
+                        <div style="margin-top:5px;display:flex;gap:4px">
+                            <button class="btn bg" style="padding:3px 7px;font-size:.58rem;margin-top:0"
+                                onclick="copyTunnel()">📋</button>
+                            <button class="btn brd" style="padding:3px 7px;font-size:.58rem;margin-top:0"
+                                onclick="stopTunnel()">✖</button>
+                        </div>
+                    </div>
+                </div>
+            </aside>
+
+            <!-- CENTER -->
+            <main class="center">
+                <div class="camp">
+                    <div class="ctbar">
+                        <div class="ctitle" id="camTitle">📷 LIVE · ESP32-CAM @ 192.168.137.36</div>
+                        <button class="tbtn" onclick="reloadCam()">🔄</button>
+                        <button class="tbtn" id="flipBtn" onclick="toggleFlip()" title="Flip camera">🔃 Flip</button>
+                        <button class="tbtn" onclick="toggleCamMode()">⬜</button>
+                        <button class="tbtn"
+                            onclick="window.open(document.getElementById('camUrl').value,'_blank')">↗</button>
+                    </div>
+                    <div class="cambody" id="cambody">
+                        <img id="camImg" src="" alt="" onerror="onCamErr()" onload="onCamLoad()">
+                        <canvas id="detCanvas"></canvas>
+                        <iframe id="camFrame" title="cam"></iframe>
+                        <div class="scan-line"></div>
+                        <div class="cor tl"></div>
+                        <div class="cor tr"></div>
+                        <div class="cor bl"></div>
+                        <div class="cor br"></div>
+                        <div class="lbadge">● LIVE</div>
+                        <div class="overlay" id="camOverlay">
+                            <span style="font-size:2.2rem">📷</span>
+                            <p style="font-size:.75rem;color:var(--mu);text-align:center;line-height:1.6">Connecting to
+                                ESP32-CAM<br><strong style="color:var(--ac)" id="camIp">192.168.137.36</strong></p>
+                            <button class="btn bp" style="width:auto;padding:5px 16px;margin-top:0"
+                                onclick="reloadCam()">🔄 Retry</button>
+                        </div>
+                    </div>
+                </div>
+                <div class="termp">
+                    <div class="termt">
+                        <div class="dots">
+                            <div class="dot" style="background:#ef4444"></div>
+                            <div class="dot" style="background:#f59e0b"></div>
+                            <div class="dot" style="background:#10b981"></div>
+                        </div>
+                        <span style="flex:1;font-size:.64rem;color:var(--mu);font-family:'JetBrains Mono',monospace"
+                            id="termLbl">bash — NayanSathi Pi Terminal</span>
+                        <button class="tbtn" onclick="pasteToTerm()">📋 Paste</button>
+                        <button class="tbtn" onclick="copyFromTerm()">📄 Copy</button>
+                    </div>
+                    <div id="tw">
+                        <div id="wel">
+                            <h3>👁️ NayanSathi Pi Terminal</h3>
+                            <p>Connect to Pi using the left panel →</p>
+                        </div>
+                        <div id="xel"></div>
+                    </div>
+                </div>
+            </main>
+
+            <!-- RIGHT -->
+            <aside class="right">
+                <div class="sec">
+                    <div class="slbl">System Stats</div>
+                    <div class="sc">
+                        <div class="si">🌡️</div>
+                        <div class="sinfo">
+                            <div class="slb">Pi Temperature</div>
+                            <div class="sv" id="svTemp">—</div>
+                        </div>
+                    </div>
+                    <div class="sc">
+                        <div class="si">💾</div>
+                        <div class="sinfo">
+                            <div class="slb">RAM Usage</div>
+                            <div class="sv" id="svRam">—</div>
+                            <div class="bar">
+                                <div class="bf" id="ramBar" style="width:0"></div>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="sc">
+                        <div class="si">⏱️</div>
+                        <div class="sinfo">
+                            <div class="slb">Session Time</div>
+                            <div class="sv" id="svTime">—</div>
+                        </div>
+                    </div>
+                    <div class="sc">
+                        <div class="si">🌐</div>
+                        <div class="sinfo">
+                            <div class="slb">Pi IP</div>
+                            <div class="sv" id="svIp">192.168.137.40</div>
+                        </div>
+                    </div>
+                    <button class="btn bg" style="margin-top:8px" onclick="qcmd('vcgencmd measure_temp&&free -m')">📊
+                        Refresh Stats</button>
+                </div>
+
+                <div class="sec" style="flex:1;overflow:hidden;display:flex;flex-direction:column;min-height:0">
+                    <div class="slbl">🤖 YOLO Detection <span style="color:var(--ac)" id="detCnt"></span></div>
+
+                    <!-- Pi YOLO panel -->
+                    <div class="ypanel" style="border:1px solid rgba(16,185,129,.2)">
+                        <div style="font-size:.58rem;color:#10b981;font-weight:700;margin-bottom:6px">🖥️ Pi YOLO · yolo11n · ONNX</div>
+                        <div class="ystat" id="piYoloStatus">● idle</div>
+
+                        <!-- Run / Stop -->
+                        <div style="display:grid;grid-template-columns:1fr 1fr;gap:4px;margin-top:6px">
+                            <button class="btn bp" id="btnPiRun" style="font-size:.62rem;padding:6px 2px;margin-top:0"
+                                onclick="runPiYolo()">▶ Run</button>
+                            <button class="btn brd" id="btnPiStop" style="font-size:.62rem;padding:6px 2px;margin-top:0"
+                                onclick="stopPiYolo()" disabled>⏹ Stop</button>
+                        </div>
+
+                        <!-- Fix / Log / Deploy -->
+                        <div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:3px;margin-top:4px">
+                            <button class="btn bg" id="btnPiSetup"
+                                style="font-size:.52rem;padding:4px 2px;margin-top:0"
+                                onclick="fixPiYolo()" title="Auto-install deps &amp; deploy script">⚙️ Fix</button>
+                            <button class="btn bg"
+                                style="font-size:.52rem;padding:4px 2px;margin-top:0"
+                                onclick="checkYoloLog()" title="Show last 30 lines of yolo.log">📋 Log</button>
+                            <button class="btn bg"
+                                style="font-size:.52rem;padding:4px 2px;margin-top:0"
+                                onclick="diagPiYolo()" title="Check python, packages &amp; port 8765">🔍 Diag</button>
+                        </div>
+
+                        <div id="piWsStatus" style="font-size:.5rem;color:var(--mu);margin-top:5px">Connect Pi SSH → ▶ Run</div>
+                        <div id="piDbg" style="font-size:.48rem;color:#f59e0b;margin-top:3px;font-family:monospace;display:none"></div>
+                    </div>
+
+                    <!-- Voice feedback badge -->
+                    <div id="voiceBadge" style="
+                            display:none;
+                            align-items:center;gap:5px;
+                            margin-top:6px;
+                            background:rgba(99,102,241,.12);
+                            border:1px solid rgba(99,102,241,.3);
+                            border-radius:6px;padding:5px 8px;
+                            font-size:.52rem;color:#a78bfa;font-weight:600">
+                        <span id="voiceWave" style="display:flex;gap:2px;align-items:center;height:12px">
+                            <span
+                                style="width:2px;background:#a78bfa;border-radius:1px;animation:wv .7s ease-in-out infinite;height:4px"></span>
+                            <span
+                                style="width:2px;background:#a78bfa;border-radius:1px;animation:wv .7s ease-in-out .1s infinite;height:8px"></span>
+                            <span
+                                style="width:2px;background:#a78bfa;border-radius:1px;animation:wv .7s ease-in-out .2s infinite;height:12px"></span>
+                            <span
+                                style="width:2px;background:#a78bfa;border-radius:1px;animation:wv .7s ease-in-out .3s infinite;height:8px"></span>
+                            <span
+                                style="width:2px;background:#a78bfa;border-radius:1px;animation:wv .7s ease-in-out .4s infinite;height:4px"></span>
+                        </span>
+                        🔊 <span id="voiceLabel">—</span>
+                    </div>
+                </div>
+
+
+
+
+                <div class="detlog" id="detLog">
+                    <div class="dempty" id="detEmpty">No detections yet.<br>▶ Start Pi YOLO</div>
+                </div>
+        </div>
+
+        <div class="sec" style="flex-shrink:0">
+            <div style="font-size:.62rem;color:var(--mu);line-height:1.9">
+                <div>🤖 YOLO · <b style="color:var(--tx)">yolo11n · ONNX</b></div>
+            </div>
+        </div>
+        </aside>
+
+    </div><!-- /main-area -->
+
+    <div class="sbar">
+        <span>🔌 <span id="sbConn" style="color:var(--ac)">Disconnected</span></span>
+        <span>📷 192.168.137.36</span>
+        <span>⏱️ <span id="sbTime">—</span></span>
+        <div class="sp"></div>
+        <span style="color:var(--mu)">NayanSathi v1.0 · SSH2 · xterm.js</span>
+    </div>
+
+    </div><!-- /shell -->
+
+    <div id="ctx">
+        <div class="ci" onclick="pasteToTerm();hideCtx()">📋 Paste</div>
+        <div class="ci" onclick="copyFromTerm();hideCtx()">📄 Copy</div>
+        <div class="ci" onclick="term.clear();hideCtx()">🗑️ Clear</div>
+    </div>
+    <div id="toast"></div>
+
+    <script>
+        // ── Terminal ──────────────────────────────────────────────────────────────
+        const term = new Terminal({
+            fontFamily: "'JetBrains Mono',monospace", fontSize: 13, lineHeight: 1.44,
+            cursorBlink: true, cursorStyle: 'bar', scrollback: 5000, allowTransparency: true, convertEol: true,
+            theme: {
+                background: '#06090f', foreground: '#ddeeff', cursor: '#00d4ff',
+                black: '#06090f', red: '#ef4444', green: '#10b981', yellow: '#f59e0b',
+                blue: '#00d4ff', magenta: '#7c3aed', cyan: '#06b6d4', white: '#ddeeff',
+                brightBlue: '#38bdf8', brightGreen: '#34d399', brightMagenta: '#a78bfa'
+            }
+        });
+        const fit = new FitAddon.FitAddon();
+        term.loadAddon(fit);
+        term.open(document.getElementById('xel'));
+        fit.fit();
+        new ResizeObserver(() => { try { fit.fit() } catch { } }).observe(document.getElementById('xel'));
+        window.addEventListener('resize', () => { try { fit.fit() } catch { } });
+
+        term.attachCustomKeyEventHandler(e => {
+            if (e.type === 'keydown' && e.ctrlKey && e.key === 'v') { pasteToTerm(); return false; }
+            if (e.type === 'keydown' && e.ctrlKey && e.key === 'c' && term.hasSelection()) { copyFromTerm(); return false; }
+            return true;
+        });
+
+        async function pasteToTerm() {
+            if (!connected) { toast('⚠️ Connect to Pi first', 'e'); return; }
+            try { const t = await navigator.clipboard.readText(); if (t && ws?.readyState === 1) ws.send(JSON.stringify({ type: 'input', data: t })); toast('📋 Pasted!', 's'); }
+            catch { toast('⚠️ Allow clipboard in browser', 'e'); }
+            term.focus();
+        }
+        function copyFromTerm() { const s = term.getSelection(); if (s) navigator.clipboard.writeText(s).then(() => toast('📄 Copied!', 's')); }
+
+        const ctxEl = document.getElementById('ctx');
+        document.getElementById('xel').addEventListener('contextmenu', e => {
+            e.preventDefault();
+            ctxEl.style.left = Math.min(e.clientX, window.innerWidth - 155) + 'px';
+            ctxEl.style.top = Math.min(e.clientY, window.innerHeight - 100) + 'px';
+            ctxEl.classList.add('show');
+        });
+        document.addEventListener('click', hideCtx);
+        document.addEventListener('keydown', e => { if (e.key === 'Escape') hideCtx(); });
+        function hideCtx() { ctxEl.classList.remove('show'); }
+
+        // ── SSH ───────────────────────────────────────────────────────────────────
+        let ws = null, connected = false, start = null, ticker = null;
+
+        function sshConnect() {
+            const host = document.getElementById('piHost').value.trim();
+            const user = document.getElementById('piUser').value.trim() || 'pi';
+            const pass = document.getElementById('piPass').value;
+            if (!host) { toast('⚠️ Enter Pi IP', 'e'); return; }
+            if (!pass) { toast('⚠️ Enter password', 'e'); return; }
+            const btn = document.getElementById('connBtn');
+            btn.textContent = '⏳ Connecting…'; btn.disabled = true;
+            toast('🔗 Connecting to ' + user + '@' + host + '…', 'i');
+            if (ws) { try { ws.close(); } catch { } }
+            ws = new WebSocket((location.protocol === 'https:' ? 'wss' : 'ws') + '://' + location.host);
+            ws.onopen = () => ws.send(JSON.stringify({ type: 'connect', host, port: 22, username: user, password: pass }));
+            ws.onmessage = e => {
+                let m; try { m = JSON.parse(e.data); } catch { return; }
+                if (m.type === 'output') { term.write(m.data); parseStats(m.data); }
+                else if (m.type === 'status') {
+                    if (m.status === 'connected') {
+                        setOn(host, user); toast('✅ Connected to ' + user + '@' + host, 's');
+                        const w = document.getElementById('wel'); w.style.opacity = '0'; setTimeout(() => w.style.display = 'none', 300);
+                        document.getElementById('termLbl').textContent = 'bash — ' + user + '@' + host + ':~';
+                        term.focus();
+                        term.onData(d => { if (ws?.readyState === 1) ws.send(JSON.stringify({ type: 'input', data: d })); });
+                        term.onResize(({ cols, rows }) => { if (ws?.readyState === 1) ws.send(JSON.stringify({ type: 'resize', cols, rows })); });
+                    } else setOff();
+                }
+                else if (m.type === 'error') { toast('❌ ' + m.message, 'e'); setOff(); }
+
+                // ── ESP32-CAM announced itself ───────────────────────────
+                else if (m.type === 'cam-online') {
+                    onCamRegistered(m);
+                }
+
+                // ── Pi YOLO proxy status ─────────────────────────────────
+                else if (m.type === 'pi-yolo-status') {
+                    if (m.status === 'connected') {
+                        piStatus('Running ● live', '#10b981');
+                        piWsStatus('proxied via server ✓');
+                        toast('🤖 Pi YOLO live!', 's');
+                        document.getElementById('btnPiRun').textContent = '🟢 Live';
+                    } else if (m.status === 'retrying') {
+                        piStatus(m.message, '#f59e0b');
+                        piWsStatus(m.message);
+                    } else if (m.status === 'disconnected') {
+                        piYoloOn = false;
+                        piStatus('disconnected', '#ef4444');
+                        piWsStatus('disconnected — click ▶ Run again');
+                        document.getElementById('btnPiRun').disabled = false;
+                        document.getElementById('btnPiRun').textContent = '▶ Run';
+                    } else if (m.status === 'error') {
+                        piYoloOn = false;
+                        piStatus('❌ ' + m.message, '#ef4444');
+                        piWsStatus(m.message);
+                        toast('❌ Pi YOLO: ' + m.message, 'e');
+                        document.getElementById('btnPiRun').disabled = false;
+                        document.getElementById('btnPiRun').textContent = '▶ Run';
+                    }
+                }
+
+                // ── Pi YOLO detections (forwarded by server proxy) ───────
+                else if (m.type === 'yolo-detections') {
+                    // Debug counter
+                    window._piMsgCnt = (window._piMsgCnt || 0) + 1;
+                    const dbg = document.getElementById('piDbg');
+                    if (dbg) {
+                        dbg.style.display = 'block';
+                        dbg.textContent = '📡 msgs:' + window._piMsgCnt + ' dets:' + (m.count || 0) +
+                            (m.detections && m.detections[0] ? ' | ' + m.detections[0].label + ' ' + Math.round((m.detections[0].conf || 0) * 100) + '%' : '');
+                    }
+                    handlePiDetections(m.detections || [], m.count || 0, m);
+
+                    // ── Voice badge: show when server announces a detection ──
+                    if (m.detections && m.detections.length > 0) {
+                        const top = m.detections[0];
+                        if (top.label && top.conf >= 0.55) {
+                            const badge = document.getElementById('voiceBadge');
+                            const lbl = document.getElementById('voiceLabel');
+                            if (badge && lbl) {
+                                lbl.textContent = top.label + ' ' + Math.round(top.conf * 100) + '%';
+                                badge.style.display = 'flex';
+                                clearTimeout(badge._t);
+                                badge._t = setTimeout(() => { badge.style.display = 'none'; }, 4000);
+                            }
+                        }
+                    }
+                    // ─────────────────────────────────────────────────────────
+                }
+
+
+                // ── Pi YOLO ready ────────────────────────────────────────
+                else if (m.type === 'yolo-ready') {
+                    piStatus('Ready · model: ' + m.model, '#10b981');
+                    toast('🤖 YOLO model: ' + m.model, 's');
+                }
+            };
+            ws.onclose = () => { if (connected) { toast('⚠️ Connection dropped', 'e'); setOff(); } };
+            ws.onerror = () => { toast('❌ WebSocket error', 'e'); setOff(); };
+        }
+
+        function setOn(host, user) {
+            connected = true; start = new Date();
+            document.getElementById('piBadge').classList.add('on');
+            document.getElementById('piTxt').textContent = 'PI ONLINE';
+            document.getElementById('connBtn').style.display = 'none';
+            document.getElementById('discBtn').style.display = 'block';
+            document.getElementById('sbConn').textContent = user + '@' + host;
+            document.getElementById('svIp').textContent = host;
+            ticker = setInterval(() => {
+                const s = Math.floor((new Date() - start) / 1000);
+                const t = String(Math.floor(s / 60)).padStart(2, '0') + ':' + String(s % 60).padStart(2, '0');
+                document.getElementById('svTime').textContent = t;
+                document.getElementById('sbTime').textContent = t;
+            }, 1000);
+        }
+        function setOff() {
+            connected = false; clearInterval(ticker);
+            document.getElementById('piBadge').classList.remove('on');
+            document.getElementById('piTxt').textContent = 'PI OFFLINE';
+            document.getElementById('connBtn').style.display = 'block';
+            document.getElementById('connBtn').textContent = '⚡ Connect to Pi';
+            document.getElementById('connBtn').disabled = false;
+            document.getElementById('discBtn').style.display = 'none';
+            document.getElementById('sbConn').textContent = 'Disconnected';
+            ['svTime', 'svTemp', 'svRam', 'sbTime'].forEach(id => document.getElementById(id).textContent = '—');
+            document.getElementById('ramBar').style.width = '0';
+        }
+
+        // ── ESP32-CAM auto-registration handler ──────────────────────────────────
+        function onCamRegistered(m) {
+            const { ip, stream, snap, mac, ipChanged, lastSeen } = m;
+            const urlEl = document.getElementById('camUrl');
+            const prevUrl = urlEl ? urlEl.value.trim() : '';
+            const newBase = 'http://' + ip;
+
+            // Update URL field
+            if (urlEl) urlEl.value = newBase;
+
+            // Update title
+            const titleEl = document.getElementById('camTitle');
+            if (titleEl) titleEl.textContent = '\ud83d\udcf7 LIVE \u00b7 ESP32-CAM @ ' + ip;
+
+            // Update cam badges
+            const dot = document.getElementById('camDot');
+            if (dot) dot.style.background = 'var(--gr)';
+            const badge = document.getElementById('camBadge');
+            if (badge) badge.classList.add('on');
+            camOnline = true;
+
+            // Only reload stream if IP changed or stream was dead
+            const streamWasDead = document.getElementById('camImg').src === '' ||
+                !document.getElementById('camImg').src.includes(':81/');
+            if (ipChanged || streamWasDead || prevUrl !== newBase) {
+                if (ipChanged) toast('\ud83c\udd95 Camera online \u2014 NEW IP: ' + ip, 's');
+                else toast('\ud83d\udcf7 Camera online @ ' + ip, 's');
+                setTimeout(reloadCam, 300);
+            } else {
+                toast('\ud83d\udcf7 Camera ready @ ' + ip, 'i');
+            }
+            console.log('[CAM] Registered:', ip, 'changed:', ipChanged);
+        }
+
+        // ── Poll + probe for camera on page load ──────────────────────────────────
+        async function checkCamStatus() {
+            try {
+                // First: check if server has cached info
+                const r = await fetch('/api/cam-status');
+                const d = await r.json();
+                if (d.online && d.ip) {
+                    console.log('[CAM] Restored from server cache:', d.ip);
+                    onCamRegistered({ ...d, ipChanged: false });
+                    return;
+                }
+
+                // Not in cache — do active TCP probe (finds ESP32 even on first boot)
+                const ip = (document.getElementById('camUrl').value.trim().replace(/https?:\/\//, '').split(':')[0]) || '192.168.137.36';
+                console.log('[CAM] Probing ESP32 @ ' + ip);
+                const r2 = await fetch('/api/cam-probe?ip=' + ip);
+                const d2 = await r2.json();
+                if (d2.online) {
+                    console.log('[CAM] Probe success:', d2.ip);
+                    onCamRegistered({ ip: d2.ip, ipChanged: false, probed: true });
+                }
+            } catch (e) {
+                console.log('[CAM] Status check failed:', e.message);
+            }
+        }
+        function sshDisconnect() {
+            if (ws?.readyState === 1) ws.send(JSON.stringify({ type: 'disconnect' }));
+            setOff();
+            const w = document.getElementById('wel'); w.style.display = 'flex'; w.style.opacity = '1';
+        }
+        function qcmd(cmd) {
+            if (!connected) { toast('⚠️ Connect to Pi first', 'e'); return; }
+            if (ws?.readyState === 1) ws.send(JSON.stringify({ type: 'input', data: cmd + '\n' }));
+            term.focus();
+        }
+        function parseStats(raw) {
+            const tm = raw.match(/temp=(\d+(?:\.\d+)?)/); if (tm) document.getElementById('svTemp').textContent = tm[1] + '°C';
+            const mm = raw.match(/Mem:\s+(\d+)\s+(\d+)/);
+            if (mm) {
+                const u = parseInt(mm[2]), t = parseInt(mm[1]), p = Math.round(u / t * 100);
+                document.getElementById('svRam').textContent = u + 'MB / ' + t + 'MB';
+                document.getElementById('ramBar').style.width = p + '%';
+            }
+        }
+
+        // ── Deploy ────────────────────────────────────────────────────────────────
+        async function deployToPi() {
+            const btn = document.getElementById('deployBtn');
+            btn.textContent = '⏳ Deploying…'; btn.disabled = true;
+            toast('🚀 Deploying…', 'i');
+            try {
+                const r = await fetch('/api/deploy', {
+                    method: 'POST', headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({
+                        host: document.getElementById('piHost').value.trim(),
+                        username: document.getElementById('piUser').value.trim() || 'pi',
+                        password: document.getElementById('piPass').value
+                    })
+                });
+                const d = await r.json();
+                toast(d.success ? '✅ ' + d.message : '❌ ' + d.message, d.success ? 's' : 'e');
+            } catch (e) { toast('❌ Deploy failed: ' + e.message, 'e'); }
+            btn.textContent = '🚀 Deploy Scripts'; btn.disabled = false;
+        }
+
+        // ── Camera ────────────────────────────────────────────────────────────────
+        let camMode = 'img', camRetry = null, camErrIdx = 0;
+
+        function updateCamTitle() {
+            const ip = document.getElementById('camUrl').value.trim().replace(/https?:\/\//, '');
+            document.getElementById('camTitle').textContent = '📷 LIVE · ESP32-CAM @ ' + ip;
+            document.getElementById('camIp').textContent = ip;
+        }
+
+        // Detect if browser is on local network or remote (Cloudflare/ngrok etc.)
+        function isRemoteAccess() {
+            const h = location.hostname;
+            return !(h === 'localhost' || h === '127.0.0.1' || h.startsWith('192.168.') || h.startsWith('10.') || h.startsWith('172.'));
+        }
+
+        function getCamUrls() {
+            const base = document.getElementById('camUrl').value.trim().replace(/\/$/, '');
+            const enc = encodeURIComponent(base + ':81/stream');
+            const enc2 = encodeURIComponent(base + '/stream');
+            const proxy1 = '/api/camera-stream?url=' + enc;
+            const proxy2 = '/api/camera-stream?url=' + enc2;
+
+            if (isRemoteAccess()) {
+                // Remote: browser can't reach 192.168.x.x — proxy MUST be first
+                return [proxy1, proxy2, base + ':81/stream', base + '/stream'];
+            } else {
+                // Local: try direct first (faster), fall back to proxy
+                return [
+                    base + ':81/stream',
+                    base + '/stream',
+                    proxy1,
+                    proxy2
+                ];
+            }
+        }
+
+        function reloadCam() {
+            clearInterval(camRetry);
+            camErrIdx = 0;
+            document.getElementById('camOverlay').classList.add('hide');
+            document.getElementById('camImg').style.display = 'block';
+            document.getElementById('camFrame').style.display = 'none';
+            camMode = 'img';
+            const urls = getCamUrls();
+            const src = urls[0] + '?_=' + Date.now();
+            document.getElementById('camImg').src = src;
+            if (isRemoteAccess()) {
+                toast('🌐 Remote mode — using server proxy', 'i');
+            } else {
+                toast('🔄 Camera connecting…', 'i');
+            }
+        }
+
+        function onCamErr() {
+            const urls = getCamUrls();
+            camErrIdx++;
+            if (camErrIdx < urls.length) {
+                // Try next URL immediately
+                document.getElementById('camImg').src = urls[camErrIdx] + '?_=' + Date.now();
+            } else {
+                // All URLs failed — show overlay and retry every 1s (fast reconnect!)
+                document.getElementById('camOverlay').classList.remove('hide');
+                document.getElementById('camBadge').classList.remove('on');
+                document.getElementById('camDot').style.background = 'var(--rd)';
+                camOnline = false;
+                clearInterval(camRetry);
+                let retryCount = 0;
+                camRetry = setInterval(() => {
+                    retryCount++;
+                    camErrIdx = 0;
+                    document.getElementById('camImg').src = getCamUrls()[0] + '?_=' + Date.now();
+                    // Every 5 retries, also ping server probe to re-detect IP change
+                    if (retryCount % 5 === 0) checkCamStatus();
+                }, 1000); // 1s retry — fast reconnect when ESP32 comes back online
+            }
+        }
+
+        function onCamLoad() {
+            clearInterval(camRetry);
+            document.getElementById('camOverlay').classList.add('hide');
+            document.getElementById('camBadge').classList.add('on');
+            document.getElementById('camDot').style.background = 'var(--gr)';
+            camOnline = true;
+        }
+
+        function toggleCamMode() {
+            const img = document.getElementById('camImg');
+            const ifr = document.getElementById('camFrame');
+            const base = document.getElementById('camUrl').value.trim();
+            if (camMode === 'img') {
+                camMode = 'iframe'; img.style.display = 'none';
+                ifr.src = base; ifr.style.display = 'block';
+                document.getElementById('camOverlay').classList.add('hide');
+                toast('📷 Web UI mode', 'i');
+            } else {
+                camMode = 'img'; ifr.style.display = 'none'; img.style.display = 'block';
+                reloadCam(); updateCamTitle();
+            }
+        }
+
+        // ── Flip/Rotate toggle — cycles all 4 orientations ───────────────────────
+        const ROTATIONS = [
+            { deg: '-90deg', label: '↺ -90°', desc: 'Left temple mount' },
+            { deg: '0deg', label: '▶ 0°', desc: 'No rotation' },
+            { deg: '90deg', label: '↻ +90°', desc: 'Right temple mount' },
+            { deg: '180deg', label: '🔃 180°', desc: 'Upside down' }
+        ];
+        let rotIdx = 0; // starts at -90deg (left temple mount)
+        function toggleFlip() {
+            rotIdx = (rotIdx + 1) % ROTATIONS.length;
+            const r = ROTATIONS[rotIdx];
+            const rot = 'rotate(' + r.deg + ')';
+            document.getElementById('camImg').style.transform = rot;
+            document.getElementById('detCanvas').style.transform = rot;
+            const btn = document.getElementById('flipBtn');
+            btn.textContent = r.label;
+            toast('📷 Rotation: ' + r.deg + ' (' + r.desc + ')', 'i');
+        }
+
+        async function setCamRes(fs) {
+            const base = document.getElementById('camUrl').value.trim().replace(/\/$/, '');
+            try { await fetch(base + '/control?var=framesize&val=' + fs, { mode: 'no-cors' }); } catch { }
+            toast('📐 Resolution set (framesize=' + fs + ') — reloading', 'i');
+            setTimeout(reloadCam, 800);
+        }
+        async function setCamQuality(q) {
+            const base = document.getElementById('camUrl').value.trim().replace(/\/$/, '');
+            try { await fetch(base + '/control?var=quality&val=' + q, { mode: 'no-cors' }); } catch { }
+            toast('🔆 Quality ' + (q === 4 ? 'Max' : 'Fast') + ' set', 'i');
+            setTimeout(reloadCam, 500);
+        }
+
+        // ── Brightness control ────────────────────────────────────────────────────
+        async function setCamBrightness(val) {
+            document.getElementById('brightLabel').textContent = 'Brightness: ' + val;
+            const base = document.getElementById('camUrl').value.trim().replace(/\/$/, '');
+            try { await fetch(base + '/control?var=brightness&val=' + val, { mode: 'no-cors' }); } catch { }
+        }
+
+        // ── Contrast control ──────────────────────────────────────────────────────
+        async function setCamContrast(val) {
+            document.getElementById('contrastLabel').textContent = 'Contrast: ' + val;
+            const base = document.getElementById('camUrl').value.trim().replace(/\/$/, '');
+            try { await fetch(base + '/control?var=contrast&val=' + val, { mode: 'no-cors' }); } catch { }
+        }
+
+        // ── Flash LED toggle ──────────────────────────────────────────────────────
+        let flashOn = false;
+        async function toggleFlash() {
+            flashOn = !flashOn;
+            const base = document.getElementById('camUrl').value.trim().replace(/\/$/, '');
+            try { await fetch(base + '/control?var=flash&val=' + (flashOn ? 1 : 0), { mode: 'no-cors' }); } catch { }
+            const btn = document.getElementById('flashBtn');
+            btn.textContent = flashOn ? '🔦 Flash ON' : '🔦 Flash OFF';
+            btn.style.color = flashOn ? 'var(--ye)' : '';
+            toast(flashOn ? '🔦 Flash ON' : '🔦 Flash OFF', 'i');
+        }
+
+        // ── Pi YOLO Detection ─────────────────────────────────────────────────────
+        let piYoloOn = false;
+
+        function piStatus(msg, col) {
+            const el = document.getElementById('piYoloStatus');
+            if (el) { el.textContent = '● ' + msg; el.style.color = col || 'var(--mu)'; }
+        }
+        function piWsStatus(msg) {
+            const el = document.getElementById('piWsStatus');
+            if (el) el.textContent = msg;
+        }
+
+        // ── Smart Python path finder — tries 5 paths, falls back to pip install ──
+        function buildYoloStartCmd(streamUrl) {
+            // Auto-detects available python: venv > system py3 > pip-installs
+            const script = '~/NayanSathi/yolo_server.py';
+            const args   = `--cam ${streamUrl} --port 8765 --fps 10 --conf 0.20 --imgsz 640`;
+            const log    = '~/NayanSathi/yolo.log';
+
+            // Check if required packages are present on whichever python we find
+            const pyPicker = [
+                '~/yolo_env/bin/python',
+                '~/NayanSathi/venv/bin/python',
+                '/usr/local/bin/python3',
+                '/usr/bin/python3',
+                'python3'
+            ].map(p => `[ -x ${p} ] && ${p} -c 'import ultralytics,websockets,cv2' 2>/dev/null && PYBIN=${p}`)
+             .join(' || ');
+
+            return [
+                // 1. Kill any stale instance
+                'pkill -f yolo_server.py 2>/dev/null; sleep 0.5',
+                // 2. Ensure script exists
+                `[ -f ${script} ] || { echo "[ERR] ${script} not found — click Fix first"; exit 1; }`,
+                // 3. Find a python that has all deps
+                `PYBIN=''; ${pyPicker}`,
+                // 4. If no working python found, auto-install into user site
+                `[ -z "$PYBIN" ] && { echo "[YOLO] Installing deps…"; pip3 install -q ultralytics websockets opencv-python-headless --break-system-packages 2>/dev/null || pip3 install -q ultralytics websockets opencv-python-headless; PYBIN=python3; }`,
+                // 5. Launch
+                `echo "[YOLO] Using: $PYBIN"`,
+                `nohup $PYBIN ${script} ${args} > ${log} 2>&1 & echo "[YOLO] PID=$! started"`
+            ].join('; ');
+        }
+
+        // ── Run Pi YOLO ──────────────────────────────────────────────────────────
+        async function runPiYolo() {
+            if (piYoloOn) { toast('Pi YOLO already running — click Stop first', 'i'); return; }
+            if (!ws || ws.readyState !== WebSocket.OPEN) {
+                toast('❌ Connect to Pi SSH first (left panel)', 'e');
+                piStatus('SSH not connected', '#ef4444');
+                return;
+            }
+
+            const btn = document.getElementById('btnPiRun');
+            btn.disabled = true; btn.textContent = '⏳ starting…';
+            piStatus('Starting on Pi…', '#f59e0b');
+
+            const piHost = document.getElementById('piHost').value.trim() || '192.168.137.40';
+            const camBase = (document.getElementById('camUrl').value.trim() || 'http://192.168.137.36')
+                .replace(/\/$/, '').replace(/:81.*/, '');
+            const streamUrl = camBase + ':82/stream';
+
+            piWsStatus('Sending start command to Pi…');
+            qcmd(buildYoloStartCmd(streamUrl));
+            toast('🤖 YOLO starting on Pi…', 'i');
+
+            // Model cold-start on Pi takes ~8s (ONNX load + warmup)
+            piWsStatus('Waiting for model to load (8s)…');
+            let tick = 8;
+            const countdown = setInterval(() => {
+                tick--;
+                piWsStatus(`Waiting for YOLO model… ${tick}s`);
+                if (tick <= 0) clearInterval(countdown);
+            }, 1000);
+
+            setTimeout(() => {
+                clearInterval(countdown);
+                piWsStatus('Connecting WebSocket proxy…');
+                ws.send(JSON.stringify({ type: 'pi-yolo-proxy', action: 'start', piHost }));
+                piYoloOn = true;
+                document.getElementById('btnPiStop').disabled = false;
+                btn.textContent = '⏳ connecting…';
+            }, 8000);
+        }
+
+        // ── Fix & Setup — auto-installs deps + deploys script ────────────────────
+        function fixPiYolo() {
+            if (!ws || ws.readyState !== WebSocket.OPEN) {
+                toast('❌ Connect to Pi SSH first', 'e'); return;
+            }
+            piStatus('Installing deps…', '#f59e0b');
+            piWsStatus('Auto-installing ultralytics, websockets, opencv…');
+            toast('⚙️ Installing YOLO deps on Pi (takes ~2min)…', 'i');
+
+            const fixCmd = [
+                'echo "=== NayanSathi Auto-Setup ==="',
+                'mkdir -p ~/NayanSathi',
+                // Install python deps
+                'pip3 install -q ultralytics websockets opencv-python-headless --break-system-packages 2>/dev/null || pip3 install -q ultralytics websockets opencv-python-headless',
+                // Verify
+                'python3 -c "import ultralytics; print(\'[OK] ultralytics \' + ultralytics.__version__)"',
+                'python3 -c "import websockets; print(\'[OK] websockets\')"',
+                'python3 -c "import cv2; print(\'[OK] cv2 \' + cv2.__version__)"',
+                // Check ONNX model
+                '[ -f ~/NayanSathi/yolo11n.onnx ] && echo "[OK] yolo11n.onnx exists" || echo "[WARN] yolo11n.onnx MISSING — click Deploy Scripts"',
+                '[ -f ~/NayanSathi/yolo_server.py ] && echo "[OK] yolo_server.py exists" || echo "[WARN] yolo_server.py MISSING — click Deploy Scripts"',
+                'echo "=== Setup Done — click ▶ Run ==="'
+            ].join(' && ');
+            qcmd(fixCmd);
+        }
+
+        // ── Show last 40 lines of yolo.log ───────────────────────────────────────
+        function checkYoloLog() {
+            if (!ws || ws.readyState !== WebSocket.OPEN) {
+                toast('❌ Connect to Pi SSH first', 'e'); return;
+            }
+            qcmd('echo "=== yolo.log ==="; tail -40 ~/NayanSathi/yolo.log 2>/dev/null || echo "[log empty — YOLO not started yet]"');
+        }
+
+        // ── Diagnose — check python, packages, port 8765 ─────────────────────────
+        function diagPiYolo() {
+            if (!ws || ws.readyState !== WebSocket.OPEN) {
+                toast('❌ Connect to Pi SSH first', 'e'); return;
+            }
+            const diagCmd = [
+                'echo "=== YOLO Diagnostics ==="',
+                'python3 --version',
+                'python3 -c "import ultralytics; print(\'ultralytics:\' + ultralytics.__version__)" 2>&1 || echo "ultralytics: MISSING"',
+                'python3 -c "import websockets; print(\'websockets: OK\')" 2>&1 || echo "websockets: MISSING"',
+                'python3 -c "import cv2; print(\'cv2:\' + cv2.__version__)" 2>&1 || echo "cv2: MISSING"',
+                'ls -lh ~/NayanSathi/yolo_server.py ~/NayanSathi/yolo11n.onnx 2>&1',
+                'ps aux | grep yolo_server | grep -v grep || echo "yolo_server.py: NOT RUNNING"',
+                'ss -tlnp | grep 8765 || echo "Port 8765: not listening"',
+                'echo "=== Done ==="'
+            ].join('; ');
+            qcmd(diagCmd);
+        }
+
+        function stopPiYolo() {
+            piYoloOn = false;
+            if (ws && ws.readyState === WebSocket.OPEN) {
+                ws.send(JSON.stringify({ type: 'pi-yolo-proxy', action: 'stop' }));
+            }
+            qcmd('pkill -f yolo_server.py 2>/dev/null; echo "[YOLO] Stopped"');
+            piStatus('Stopped', 'var(--mu)');
+            piWsStatus('Connect Pi SSH → ▶ Run');
+            document.getElementById('btnPiRun').disabled = false;
+            document.getElementById('btnPiRun').textContent = '▶ Run';
+            document.getElementById('btnPiStop').disabled = true;
+            const cv = document.getElementById('detCanvas');
+            if (cv) cv.getContext('2d').clearRect(0, 0, cv.width, cv.height);
+            document.getElementById('detCnt').textContent = '';
+            toast('⏹ Pi YOLO stopped', 'i');
+        }
+
+        // Frame dimensions — updated dynamically from Pi message (frameW/H fields)
+        let RAW_W = 800, RAW_H = 600;
+
+        function handlePiDetections(dets, count, msg) {
+            // Update actual frame dimensions from Pi
+            if (msg && msg.frameW) { RAW_W = msg.frameW; RAW_H = msg.frameH; }
+
+            const canvas = document.getElementById('detCanvas');
+            const cambody = document.getElementById('cambody');
+            if (!canvas || !cambody) return;
+
+            // Canvas must match container
+            const CW = cambody.offsetWidth  || 640;
+            const CH = cambody.offsetHeight || 480;
+            if (canvas.width !== CW)  canvas.width  = CW;
+            if (canvas.height !== CH) canvas.height = CH;
+
+            const ctx = canvas.getContext('2d');
+            ctx.clearRect(0, 0, CW, CH);
+
+            // ── Detect current rotation so we swap W/H if camera is sideways ──
+            const rot = (document.getElementById('camImg').style.transform || '').match(/rotate\(([^)]+)\)/);
+            const deg = rot ? parseFloat(rot[1]) : -90;
+            const sideways = (Math.abs(deg) === 90);
+
+            // When rotated ±90°, the Pi frame arrives as portrait but canvas is landscape
+            // Pi sends normalized coords relative to RAW_W×RAW_H.
+            // The CSS rotation swaps visual W/H, so we must too for correct letterbox.
+            const natW = sideways ? RAW_H : RAW_W;
+            const natH = sideways ? RAW_W : RAW_H;
+
+            const scale = Math.min(CW / natW, CH / natH);
+            const dispW = natW * scale;
+            const dispH = natH * scale;
+            const offX  = (CW - dispW) / 2;
+            const offY  = (CH - dispH) / 2;
+
+            dets.forEach(d => {
+                let bx, by, bw2, bh2;
+                if (sideways) {
+                    // For -90°: (x,y) in raw portrait → remap to landscape canvas
+                    // Raw portrait: x=col/W, y=row/H
+                    // After -90° rotation: new_x = y_raw, new_y = 1 - x_raw - w_raw
+                    bx  = offX + d.y * dispW;
+                    by  = offY + (1 - d.x - d.w) * dispH;
+                    bw2 = d.h * dispW;
+                    bh2 = d.w * dispH;
+                } else {
+                    bx  = offX + d.x * dispW;
+                    by  = offY + d.y * dispH;
+                    bw2 = d.w * dispW;
+                    bh2 = d.h * dispH;
+                }
+
+                const col = d.color || '#10b981';
+                const pct = Math.round(d.conf * 100);
+                const emoji = window.EMOJIS_MAP && window.EMOJIS_MAP[d.label] ? window.EMOJIS_MAP[d.label] : '';
+
+                ctx.save();
+
+                // Glow border
+                ctx.shadowColor = col;
+                ctx.shadowBlur  = 16;
+                ctx.strokeStyle = col;
+                ctx.lineWidth   = 3;
+                ctx.strokeRect(bx, by, bw2, bh2);
+                ctx.shadowBlur = 0;
+
+                // Fill
+                ctx.fillStyle = col + '1a';
+                ctx.fillRect(bx, by, bw2, bh2);
+
+                // Corner L-brackets
+                const cs = Math.min(bw2, bh2, 22) * 0.35;
+                ctx.strokeStyle = '#ffffff';
+                ctx.lineWidth   = 2.5;
+                ctx.beginPath();
+                ctx.moveTo(bx + cs, by);            ctx.lineTo(bx, by);            ctx.lineTo(bx, by + cs);
+                ctx.moveTo(bx + bw2 - cs, by);      ctx.lineTo(bx + bw2, by);      ctx.lineTo(bx + bw2, by + cs);
+                ctx.moveTo(bx, by + bh2 - cs);      ctx.lineTo(bx, by + bh2);      ctx.lineTo(bx + cs, by + bh2);
+                ctx.moveTo(bx + bw2 - cs, by + bh2);ctx.lineTo(bx + bw2, by + bh2);ctx.lineTo(bx + bw2, by + bh2 - cs);
+                ctx.stroke();
+
+                // Label pill
+                const labelText = (emoji ? emoji + ' ' : '') + d.label + '  ' + pct + '%';
+                ctx.font = 'bold 13px "JetBrains Mono",monospace';
+                const tw = ctx.measureText(labelText).width;
+                const lx = Math.max(offX, Math.min(bx, CW - tw - 16));
+                const ly = by >= 26 ? by - 26 : by + bh2 + 4;
+
+                // pill background with slight transparency
+                ctx.globalAlpha = 0.92;
+                ctx.fillStyle   = col;
+                if (ctx.roundRect) ctx.roundRect(lx, ly, tw + 14, 22, 5);
+                else               ctx.rect(lx, ly, tw + 14, 22);
+                ctx.fill();
+                ctx.globalAlpha = 1;
+
+                // Confidence bar inside pill
+                ctx.fillStyle   = 'rgba(0,0,0,0.25)';
+                ctx.fillRect(lx + (tw + 14) * d.conf, ly, (tw + 14) * (1 - d.conf), 22);
+
+                // Text
+                ctx.fillStyle = '#ffffff';
+                ctx.fillText(labelText, lx + 7, ly + 16);
+                ctx.restore();
+            });
+
+            // ── Sidebar detection log ───────────────────────────────────────
+            document.getElementById('detCnt').textContent = count ? '(' + count + ')' : '';
+            const log = document.getElementById('detLog');
+            if (count > 0) {
+                const emoji_map = window.EMOJIS_MAP || {};
+                log.innerHTML = dets.map(d => {
+                    const em = emoji_map[d.label.toLowerCase()] || '📦';
+                    return '<div class="de" style="border-left:3px solid ' + d.color + '">' +
+                        '<span style="font-size:.88rem">' + em + '</span>' +
+                        '<span class="dlb" style="color:' + d.color + '">' + d.label + '</span>' +
+                        '<span class="dconf" style="color:' + d.color + '">' + Math.round(d.conf * 100) + '%</span>' +
+                        '<span class="dtime">' + (d.proximity || '') + '</span>' +
+                        '</div>';
+                }).join('') +
+                    '<div style="font-size:.46rem;color:var(--mu);padding:3px 6px;margin-top:3px">' +
+                    '🖥 Pi yolo11n v4 · ' + (msg && msg.frameW ? msg.frameW + '×' + msg.frameH : '') +
+                    ' · conf≥' + (msg && msg.conf ? (msg.conf*100).toFixed(0)+'%' : '20%') +'</div>';
+            } else {
+                log.innerHTML = '<div class="dempty">No detections yet.<br>▶ Start Pi YOLO</div>';
+            }
+        }
+
+        // ── Browser COCO-SSD Detection ────────────────────────────────────────────
+        let cocoModel = null, yoloOn = false, yoloTimer = null;
+        const COLS = ['#ef4444', '#f59e0b', '#10b981', '#00d4ff', '#818cf8', '#f472b6', '#34d399', '#fb923c', '#a78bfa', '#38bdf8'];
+
+        function ystatus(msg, col) { const el = document.getElementById('yolostatus'); el.textContent = msg; el.style.color = col || 'var(--mu)'; }
+
+        async function startYolo() {
+            document.getElementById('btnStart').disabled = true;
+            if (typeof cocoSsd === 'undefined' || typeof tf === 'undefined') {
+                ystatus('❌ TF.js not loaded — check internet', '#ef4444');
+                document.getElementById('btnStart').disabled = false;
+                toast('❌ TF.js CDN not loaded', 'e'); return;
+            }
+            try {
+                ystatus('⏳ Loading mobilenet_v2 (~15MB)…', '#f59e0b');
+                await tf.ready();
+                // mobilenet_v2 = full model, detects ALL 90 classes properly
+                cocoModel = await cocoSsd.load({ base: 'mobilenet_v2' });
+                yoloOn = true;
+                ystatus('🟢 Running · ' + tf.getBackend(), '#10b981');
+                document.getElementById('btnStop').disabled = false;
+                document.getElementById('btnStart').disabled = true;
+                detLoop();
+            } catch (e) {
+                ystatus('❌ ' + (e?.message || String(e)), '#ef4444');
+                document.getElementById('btnStart').disabled = false;
+                console.error('[YOLO]', e);
+            }
+        }
+
+        function stopYolo() {
+            yoloOn = false; clearTimeout(yoloTimer);
+            ystatus('⏹ Stopped', '#6b7280');
+            document.getElementById('btnStart').disabled = false;
+            document.getElementById('btnStop').disabled = true;
+            const c = document.getElementById('detCanvas');
+            c.getContext('2d').clearRect(0, 0, c.width, c.height);
+        }
+
+        async function detLoop() {
+            if (!yoloOn) return;
+            try { await detFrame(); } catch (e) { console.warn('[det]', e.message); }
+            yoloTimer = setTimeout(detLoop, 150); // ~6-7fps, non-blocking
+        }
+
+        async function detFrame() {
+            const img = document.getElementById('camImg');
+            if (!img.naturalWidth || img.naturalWidth < 4) return;
+
+            // ── CRITICAL FIX: snapshot MJPEG frame to offscreen canvas ──────────────
+            // COCO-SSD's detect() fails silently on a live MJPEG <img> because the
+            // browser keeps it in a perpetual "loading" state (streaming).
+            // We must grab the current frame into an offscreen canvas first so
+            // COCO-SSD gets a stable, complete pixel buffer it can actually process.
+            let grab = document.getElementById('_grabCanvas');
+            if (!grab) {
+                grab = document.createElement('canvas');
+                grab.id = '_grabCanvas';
+                grab.style.display = 'none';
+                document.body.appendChild(grab);
+            }
+            grab.width = img.naturalWidth;
+            grab.height = img.naturalHeight;
+            const gctx = grab.getContext('2d');
+            gctx.drawImage(img, 0, 0);
+
+            // Run inference on the grabbed stable frame
+            const preds = await cocoModel.detect(grab, 25, 0.25);
+
+            const canvas = document.getElementById('detCanvas');
+            const cb = document.getElementById('cambody');
+            const dw = cb.clientWidth, dh = cb.clientHeight;
+            canvas.width = dw; canvas.height = dh;
+            const ctx = canvas.getContext('2d');
+            ctx.clearRect(0, 0, dw, dh);
+
+            if (!preds.length) return;
+
+            // ── object-fit:contain letterbox math (CRITICAL for correct box position) ──
+            const nw = img.naturalWidth, nh = img.naturalHeight;
+            const scale = Math.min(dw / nw, dh / nh); // uniform scale keeping aspect ratio
+            const ox = (dw - nw * scale) / 2;  // left black bar offset
+            const oy = (dh - nh * scale) / 2;  // top black bar offset
+
+            preds.forEach(({ bbox, class: cls, score }, i) => {
+                const [bx, by, bw, bh] = bbox;
+                // Map from natural image px → canvas display px
+                const x = ox + bx * scale;
+                const y = oy + by * scale;
+                const w = bw * scale;
+                const h = bh * scale;
+                const col = COLS[i % COLS.length];
+                const lbl = cls + ' ' + Math.round(score * 100) + '%';
+
+                // Glow border
+                ctx.save();
+                ctx.shadowColor = col; ctx.shadowBlur = 12;
+                ctx.strokeStyle = col; ctx.lineWidth = 2.5;
+                ctx.strokeRect(x, y, w, h);
+                ctx.shadowBlur = 0;
+
+                // Translucent fill
+                ctx.fillStyle = col; ctx.globalAlpha = 0.08;
+                ctx.fillRect(x, y, w, h);
+                ctx.globalAlpha = 1;
+
+                // Thick corner brackets
+                const cs = Math.min(w, h, 44) * 0.30;
+                ctx.lineWidth = 4; ctx.strokeStyle = col;
+                [[x, y, cs, cs], [x + w, y, -cs, cs], [x, y + h, cs, -cs], [x + w, y + h, -cs, -cs]].forEach(([px, py, dx, dy]) => {
+                    ctx.beginPath(); ctx.moveTo(px + dx, py); ctx.lineTo(px, py); ctx.lineTo(px, py + dy); ctx.stroke();
+                });
+
+                // Label pill
+                ctx.font = 'bold 12px "JetBrains Mono",monospace';
+                const tw = ctx.measureText(lbl).width + 14;
+                const lx = Math.max(ox, Math.min(x, dw - tw));
+                const ly = y > 22 ? y - 20 : y + h + 2;
+                ctx.fillStyle = col; ctx.globalAlpha = 0.92;
+                if (ctx.roundRect) ctx.roundRect(lx, ly, tw, 18, 4); else ctx.rect(lx, ly, tw, 18);
+                ctx.fill();
+                ctx.globalAlpha = 1; ctx.fillStyle = '#fff';
+                ctx.fillText(lbl, lx + 7, ly + 13);
+                ctx.restore();
+
+                addDet(cls, score);
+            });
+        }
+
+        // ── Detection Log ─────────────────────────────────────────────────────────
+        let detTotal = 0, lastDetTime = 0;
+        const EMOJIS = {
+            person: '🧑', bicycle: '🚲', car: '🚗', motorcycle: '🏍️', airplane: '✈️', bus: '🚌',
+            train: '🚆', truck: '🚛', boat: '⛵', 'traffic light': '🚦', 'fire hydrant': '🚒',
+            'stop sign': '🛑', bench: '🪑', bird: '🐦', cat: '🐈', dog: '🐕', horse: '🐴',
+            sheep: '🐑', cow: '🐄', elephant: '🐘', bear: '🐻', backpack: '🎒', umbrella: '☂️',
+            handbag: '👜', bottle: '🍾', cup: '☕', fork: '🍴', knife: '🔪', bowl: '🍜',
+            banana: '🍌', apple: '🍎', pizza: '🍕', donut: '🍩', cake: '🎂', chair: '🪑',
+            couch: '🛋️', bed: '🛏️', toilet: '🚽', tv: '📺', laptop: '💻', 'cell phone': '📱',
+            book: '📖', clock: '⏰', vase: '🏺', scissors: '✂️', remote: '🎮', mouse: '🖱️', keyboard: '⌨️',
+            'wine glass': '🍷', spoon: '🥄', 'sports ball': '⚽', kite: '🪁', 'baseball bat': '⚾',
+            skateboard: '🛹', surfboard: '🏄', 'tennis racket': '🎾', suitcase: '🧳', frisbee: '🥏',
+            skis: '⛷️', snowboard: '🏂', 'potted plant': '🪴', 'dining table': '🍽️', refrigerator: '🧊',
+            'teddy bear': '🧸', 'hair drier': '💈', toothbrush: '🦷', sandwich: '🥪', orange: '🍊',
+            broccoli: '🥦', carrot: '🥕', 'hot dog': '🌭', pizza: '🍕', microwave: '📡',
+            oven: '🔥', toaster: '🍞', sink: '🚿', zebra: '🦓', giraffe: '🦒',
+            tie: '👔', 'parking meter': '🅿️',
+        };
+        // Share emoji map globally so Pi YOLO sidebar uses same icons
+        window.EMOJIS_MAP = EMOJIS;
+
+        function addDet(label, conf) {
+            const now = Date.now();
+            if (now - lastDetTime < 200) return; // throttle log (max 5/s)
+            lastDetTime = now;
+            detTotal++;
+            document.getElementById('detEmpty').style.display = 'none';
+            document.getElementById('detCnt').textContent = '(' + detTotal + ')';
+            const log = document.getElementById('detLog');
+            const t = new Date().toLocaleTimeString('en', { hour12: false, hour: '2-digit', minute: '2-digit', second: '2-digit' });
+            const el = document.createElement('div'); el.className = 'de';
+            el.innerHTML = `<span style="font-size:.88rem">${EMOJIS[label.toLowerCase()] || '📦'}</span><span class="dlb">${label}</span><span class="dconf">${Math.round(conf * 100)}%</span><span class="dtime">${t}</span>`;
+            log.insertBefore(el, log.firstChild);
+            while (log.children.length > 35) log.removeChild(log.lastChild);
+        }
+
+        // ── Bluetooth ─────────────────────────────────────────────────────────────
+        let btPollTimer = null;
+        async function connectBT() {
+            const btn = document.getElementById('btBtn');
+            const stat = document.getElementById('btStatus');
+            btn.disabled = true;
+            btn.textContent = '⏳ Connecting…';
+            stat.textContent = '🔵 Connecting to Airdopes 141…';
+            stat.style.color = '#60a5fa';
+            toast('🎧 Connecting Airdopes 141…', 'i');
+            try {
+                const r = await fetch('/api/bluetooth/connect-airdopes', { method: 'POST' });
+                const d = await r.json();
+                if (d.success) {
+                    toast('✅ Airdopes 141 connected!', 's');
+                    stat.textContent = '✅ Connected';
+                    stat.style.color = 'var(--gr)';
+                    btn.textContent = '🎧 Airdopes ✓';
+                    btn.style.background = 'var(--gr)';
+                    // Poll every 60s to stay connected
+                    clearInterval(btPollTimer);
+                    btPollTimer = setInterval(async () => {
+                        try {
+                            const rp = await fetch('/api/bluetooth/connect-airdopes', { method: 'POST' });
+                            const dp = await rp.json();
+                            if (!dp.success) { stat.textContent = '⚠️ Reconnecting…'; stat.style.color = '#f59e0b'; }
+                            else { stat.textContent = '✅ Connected'; stat.style.color = 'var(--gr)'; }
+                        } catch (_) { }
+                    }, 60000);
+                } else {
+                    toast('❌ ' + d.message, 'e');
+                    stat.textContent = '❌ ' + d.message;
+                    stat.style.color = 'var(--rd)';
+                    btn.textContent = '🎧 Retry Connect';
+                    btn.style.background = '';
+                }
+            } catch (e) {
+                toast('❌ BT error: ' + e.message, 'e');
+                btn.textContent = '🎧 Connect Airdopes 141';
+                btn.style.background = '';
+                stat.textContent = '❌ Error: ' + e.message;
+                stat.style.color = 'var(--rd)';
+            }
+            btn.disabled = false;
+        }
+
+
+        // ── Voice Test (Piper Female TTS → Airdopes 141) ─────────────────────────
+        async function voiceTest() {
+            const btn = document.getElementById('voiceBtn');
+            const stat = document.getElementById('voiceStatus');
+            const text = (document.getElementById('voiceText').value.trim()) || 'NayanSathi is online';
+            btn.disabled = true;
+            btn.textContent = '⏳';
+            stat.textContent = '🔵 Setting up A2DP audio…';
+            stat.style.color = '#60a5fa';
+            try {
+                const resp = await fetch('/api/bluetooth/voice-test', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ text })
+                });
+                const d = await resp.json();
+                if (d.success) {
+                    stat.textContent = '✅ Spoken: "' + text + '"';
+                    stat.style.color = '#4ade80';
+                    toast('🔊 Female voice on Airdopes!', 's');
+                } else {
+                    stat.textContent = '❌ ' + (d.message || 'Failed – power on Airdopes');
+                    stat.style.color = '#f87171';
+                    toast('❌ ' + d.message, 'e');
+                }
+            } catch (e) {
+                stat.textContent = '❌ ' + e.message;
+                stat.style.color = '#f87171';
+            } finally {
+                btn.disabled = false;
+                btn.textContent = '🔊 Test';
+            }
+        }
+
+
+        // ── Tunnel ────────────────────────────────────────────────────────────────
+        let tunnelPoll = null;
+        async function startTunnel() {
+            const btn = document.getElementById('cfBtn');
+            btn.disabled = true; btn.textContent = '⏳ Starting…';
+            toast('☁️ Starting Cloudflare tunnel…', 'i');
+            try {
+                const r = await fetch('/api/tunnel/start', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ type: 'cloudflare' }) });
+                const d = await r.json();
+                if (d.success) {
+                    document.getElementById('tunnelBox').style.display = 'block';
+                    document.getElementById('tunnelUrl').textContent = '⏳ Connecting…';
+                    toast('✅ Tunnel started…', 's');
+                    let tries = 0; clearInterval(tunnelPoll);
+                    tunnelPoll = setInterval(async () => { tries++; await checkTunnel(); if (document.getElementById('tunnelUrl').href.startsWith('https') || tries > 20) clearInterval(tunnelPoll); }, 3000);
+                } else { toast('❌ ' + d.message, 'e'); btn.textContent = '☁️ Share via Cloudflare'; }
+            } catch (e) { toast('❌ ' + e.message, 'e'); btn.textContent = '☁️ Share via Cloudflare'; }
+            btn.disabled = false;
+        }
+        async function checkTunnel() {
+            try { const r = await fetch('/api/tunnel/status'); const d = await r.json(); if (d.url) { document.getElementById('tunnelBox').style.display = 'block'; const el = document.getElementById('tunnelUrl'); el.textContent = d.url; el.href = d.url; document.getElementById('cfBtn').textContent = '☁️ Tunnel Active'; } } catch { }
+        }
+        async function stopTunnel() {
+            try { await fetch('/api/tunnel/stop', { method: 'POST' }); } catch { }
+            document.getElementById('tunnelBox').style.display = 'none';
+            document.getElementById('cfBtn').textContent = '☁️ Share via Cloudflare';
+            document.getElementById('cfBtn').disabled = false;
+            clearInterval(tunnelPoll); toast('✖ Tunnel stopped', 'i');
+        }
+        function copyTunnel() { const u = document.getElementById('tunnelUrl').textContent; if (u.startsWith('https')) navigator.clipboard.writeText(u).then(() => toast('📋 URL copied!', 's')); else toast('⏳ URL not ready', 'e'); }
+
+        // ── Toast ─────────────────────────────────────────────────────────────────
+        let toastT;
+        function toast(msg, type = 'i') {
+            const el = document.getElementById('toast');
+            el.textContent = msg; el.className = 'show ' + type;
+            clearTimeout(toastT);
+            toastT = setTimeout(() => el.classList.remove('show'), 3000);
+        }
+
+        // ── Auto-connect on load ──────────────────────────────────────────────────
+        window.addEventListener('load', () => {
+            // 1) Camera — try immediately
+            setTimeout(reloadCam, 300);
+
+            // 2) Restore last known camera IP from server
+            setTimeout(checkCamStatus, 800);
+
+            // 3) Auto-ping camera every 10s — auto-load stream when online
+            setInterval(pingCamera, 10000);
+            setTimeout(pingCamera, 2000);
+
+            // 4) Pi: ping then SSH
+            setTimeout(async () => {
+                const host = document.getElementById('piHost').value.trim();
+                const pass = document.getElementById('piPass').value;
+                if (!host || !pass) return;
+                try {
+                    toast('🔍 Checking Pi at ' + host + '…', 'i');
+                    const r = await fetch('/api/ping-pi?host=' + encodeURIComponent(host));
+                    const d = await r.json();
+                    if (d.reachable) { toast('✅ Pi reachable — connecting…', 's'); setTimeout(sshConnect, 400); }
+                    else toast('⚠️ Pi not reachable at ' + host + ' (' + d.reason + ')', 'e');
+                } catch { sshConnect(); }
+            }, 1500);
+
+            // 5) Tunnel status
+            checkTunnel();
+        });
+
+        // ── Camera Auto-Ping (checks if ESP32-CAM is online) ─────────────────────
+        let camOnline = false;
+        async function pingCamera() {
+            const base = document.getElementById('camUrl').value.trim().replace(/\/$/, '');
+            try {
+                // Try /status endpoint on ESP32-CAM (port 80)
+                const ctrl = new AbortController();
+                const tid = setTimeout(() => ctrl.abort(), 3000);
+                const r = await fetch(base + '/status', { signal: ctrl.signal, mode: 'no-cors' });
+                clearTimeout(tid);
+                // no-cors = opaque response, if no error = camera is UP
+                if (!camOnline) {
+                    camOnline = true;
+                    document.getElementById('camBadge').classList.add('on');
+                    document.getElementById('camDot').style.background = 'var(--gr)';
+                    toast('📷 Camera online at ' + base, 's');
+                    // Auto-load stream if not already showing
+                    const img = document.getElementById('camImg');
+                    if (!img.naturalWidth || img.naturalWidth < 4) reloadCam();
+                }
+            } catch {
+                if (camOnline) {
+                    camOnline = false;
+                    document.getElementById('camBadge').classList.remove('on');
+                    document.getElementById('camDot').style.background = 'var(--rd)';
+                    toast('⚠️ Camera offline', 'e');
+                }
+            }
+        }
+    </script>
+</body>
+
+</html>
