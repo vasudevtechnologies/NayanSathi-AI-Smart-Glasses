@@ -1,0 +1,2121 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>NayanSathi — AI Smart Glasses for the Visually Impaired | Vasudev Technologies</title>
+  <meta name="description" content="NayanSathi is an edge-AI powered wearable assistant that detects objects, reads surroundings and provides real-time voice guidance for the visually impaired." />
+  <meta property="og:title" content="NayanSathi — AI Smart Glasses" />
+  <meta property="og:description" content="See the World. Smarter. Live with Confidence. Edge AI on Raspberry Pi." />
+  <meta property="og:type" content="website" />
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@300;400;500;600;700&family=Inter:wght@300;400;500;600&family=Orbitron:wght@400;600;700;900&display=swap" rel="stylesheet" />
+  <style>
+    /* ─── DESIGN TOKENS ─────────────────────────────────────── */
+    :root {
+      --bg: #04040f;
+      --bg2: #07071a;
+      --bg3: #0a0a22;
+      --blue: #00d4ff;
+      --blue2: #0099cc;
+      --purple: #7b2fff;
+      --purple2: #9f5fff;
+      --pink: #ff2090;
+      --green: #00ffaa;
+      --glass: rgba(255,255,255,0.04);
+      --glass-border: rgba(0,212,255,0.15);
+      --glass-hover: rgba(0,212,255,0.08);
+      --text: #e8eaf6;
+      --text-dim: #8892b0;
+      --glow-blue: 0 0 30px rgba(0,212,255,0.4), 0 0 60px rgba(0,212,255,0.15);
+      --glow-purple: 0 0 30px rgba(123,47,255,0.4), 0 0 60px rgba(123,47,255,0.15);
+      --r: 12px;
+    }
+
+    /* ─── RESET & BASE ──────────────────────────────────────── */
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+    html { scroll-behavior: smooth; }
+    body {
+      background: var(--bg);
+      color: var(--text);
+      font-family: 'Inter', sans-serif;
+      overflow-x: hidden;
+      cursor: none;
+    }
+    img { max-width: 100%; display: block; }
+    a { color: inherit; text-decoration: none; }
+    ::selection { background: rgba(0,212,255,0.3); color: #fff; }
+
+    /* Custom scrollbar */
+    ::-webkit-scrollbar { width: 6px; }
+    ::-webkit-scrollbar-track { background: var(--bg); }
+    ::-webkit-scrollbar-thumb { background: var(--purple); border-radius: 3px; }
+    ::-webkit-scrollbar-thumb:hover { background: var(--blue); }
+
+    /* ─── CURSOR ──────────────────────────────────────────────  */
+    #cursor {
+      width: 12px; height: 12px;
+      background: var(--blue);
+      border-radius: 50%;
+      position: fixed; top: 0; left: 0;
+      pointer-events: none; z-index: 9999;
+      transition: transform 0.1s ease;
+      box-shadow: 0 0 15px var(--blue), 0 0 30px rgba(0,212,255,0.5);
+      mix-blend-mode: screen;
+    }
+    #cursor-ring {
+      width: 36px; height: 36px;
+      border: 1px solid rgba(0,212,255,0.5);
+      border-radius: 50%;
+      position: fixed; top: 0; left: 0;
+      pointer-events: none; z-index: 9998;
+      transition: transform 0.25s ease, width 0.3s, height 0.3s, border-color 0.3s;
+    }
+
+    /* ─── CANVAS PARTICLES ────────────────────────────────────  */
+    #particle-canvas {
+      position: fixed; top: 0; left: 0;
+      width: 100%; height: 100%;
+      z-index: 0; pointer-events: none;
+      opacity: 0.6;
+    }
+
+    /* ─── NAVBAR ──────────────────────────────────────────────  */
+    nav {
+      position: fixed; top: 0; left: 0; right: 0;
+      z-index: 100;
+      display: flex; align-items: center; justify-content: space-between;
+      padding: 18px 5%;
+      background: rgba(4,4,15,0.7);
+      backdrop-filter: blur(20px);
+      border-bottom: 1px solid var(--glass-border);
+      transition: all 0.3s ease;
+    }
+    nav.scrolled {
+      padding: 12px 5%;
+      background: rgba(4,4,15,0.92);
+    }
+    .nav-logo {
+      font-family: 'Orbitron', sans-serif;
+      font-size: 1.4rem; font-weight: 700;
+      background: linear-gradient(135deg, var(--blue), var(--purple));
+      -webkit-background-clip: text; -webkit-text-fill-color: transparent;
+      letter-spacing: 1px;
+    }
+    .nav-logo span { color: var(--blue); }
+    .nav-links { display: flex; gap: 36px; list-style: none; }
+    .nav-links a {
+      font-size: 0.85rem; font-weight: 500;
+      color: var(--text-dim); letter-spacing: 0.5px;
+      transition: color 0.3s;
+      text-transform: uppercase;
+    }
+    .nav-links a:hover { color: var(--blue); }
+    .nav-cta {
+      padding: 10px 24px;
+      background: linear-gradient(135deg, var(--blue), var(--purple));
+      border-radius: 50px;
+      font-size: 0.85rem; font-weight: 600;
+      color: #fff !important;
+      box-shadow: 0 4px 20px rgba(0,212,255,0.3);
+      transition: all 0.3s ease;
+    }
+    .nav-cta:hover { transform: translateY(-2px); box-shadow: 0 8px 30px rgba(0,212,255,0.5); }
+    .hamburger { display: none; flex-direction: column; gap: 5px; cursor: pointer; }
+    .hamburger span { width: 24px; height: 2px; background: var(--blue); border-radius: 2px; transition: 0.3s; }
+
+    /* ─── SECTIONS COMMON ─────────────────────────────────────  */
+    section { position: relative; z-index: 1; }
+    .section-label {
+      font-family: 'Orbitron', sans-serif;
+      font-size: 0.72rem; font-weight: 600;
+      letter-spacing: 4px; text-transform: uppercase;
+      color: var(--blue); margin-bottom: 16px;
+      display: flex; align-items: center; gap: 12px;
+    }
+    .section-label::before {
+      content: '';
+      width: 32px; height: 1px;
+      background: var(--blue);
+      display: inline-block;
+    }
+    .section-title {
+      font-family: 'Space Grotesk', sans-serif;
+      font-size: clamp(2rem, 5vw, 3.2rem);
+      font-weight: 700; line-height: 1.15;
+      margin-bottom: 20px;
+    }
+    .section-title .grad {
+      background: linear-gradient(135deg, var(--blue), var(--purple));
+      -webkit-background-clip: text; -webkit-text-fill-color: transparent;
+    }
+    .section-desc {
+      color: var(--text-dim); font-size: 1.05rem;
+      line-height: 1.8; max-width: 600px;
+    }
+    .container { max-width: 1260px; margin: 0 auto; padding: 0 5%; }
+
+    /* fade-in on scroll */
+    .reveal { opacity: 0; transform: translateY(40px); transition: opacity 0.7s ease, transform 0.7s ease; }
+    .reveal.visible { opacity: 1; transform: translateY(0); }
+    .reveal-left { opacity: 0; transform: translateX(-40px); transition: opacity 0.7s ease, transform 0.7s ease; }
+    .reveal-left.visible { opacity: 1; transform: translateX(0); }
+    .reveal-right { opacity: 0; transform: translateX(40px); transition: opacity 0.7s ease, transform 0.7s ease; }
+    .reveal-right.visible { opacity: 1; transform: translateX(0); }
+
+    /* ─── HERO ────────────────────────────────────────────────  */
+    #hero {
+      min-height: 100vh;
+      display: flex; align-items: center; justify-content: center;
+      position: relative; overflow: hidden;
+      padding: 120px 5% 80px;
+    }
+    .hero-bg-glow {
+      position: absolute;
+      border-radius: 50%;
+      filter: blur(100px);
+      pointer-events: none;
+    }
+    .hero-glow-1 {
+      width: 600px; height: 600px;
+      background: radial-gradient(circle, rgba(0,212,255,0.12) 0%, transparent 70%);
+      top: -10%; right: -5%;
+      animation: floatGlow 8s ease-in-out infinite;
+    }
+    .hero-glow-2 {
+      width: 500px; height: 500px;
+      background: radial-gradient(circle, rgba(123,47,255,0.15) 0%, transparent 70%);
+      bottom: 10%; left: -5%;
+      animation: floatGlow 10s ease-in-out infinite reverse;
+    }
+    .hero-inner {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 60px; align-items: center;
+      max-width: 1260px; width: 100%;
+    }
+    .hero-badge {
+      display: inline-flex; align-items: center; gap: 8px;
+      padding: 6px 16px;
+      background: rgba(0,212,255,0.1);
+      border: 1px solid rgba(0,212,255,0.3);
+      border-radius: 50px;
+      font-size: 0.78rem; font-weight: 600;
+      color: var(--blue); letter-spacing: 1px;
+      text-transform: uppercase; margin-bottom: 24px;
+    }
+    .hero-badge .dot {
+      width: 6px; height: 6px;
+      background: var(--green); border-radius: 50%;
+      animation: pulse 2s ease-in-out infinite;
+    }
+    .hero-headline {
+      font-family: 'Space Grotesk', sans-serif;
+      font-size: clamp(2.8rem, 6vw, 5rem);
+      font-weight: 700; line-height: 1.08;
+      margin-bottom: 12px;
+    }
+    .hero-headline .nayan {
+      background: linear-gradient(135deg, var(--blue) 0%, #ffffff 50%, var(--purple) 100%);
+      -webkit-background-clip: text; -webkit-text-fill-color: transparent;
+      background-clip: text;
+    }
+    .hero-headline .sathi {
+      background: linear-gradient(135deg, var(--purple), var(--pink));
+      -webkit-background-clip: text; -webkit-text-fill-color: transparent;
+      background-clip: text;
+    }
+    .hero-sub {
+      font-family: 'Orbitron', sans-serif;
+      font-size: 0.9rem; font-weight: 400;
+      color: var(--text-dim); letter-spacing: 2px;
+      text-transform: uppercase; margin-bottom: 24px;
+    }
+    .hero-desc {
+      color: var(--text-dim); font-size: 1.05rem;
+      line-height: 1.8; margin-bottom: 40px;
+      max-width: 500px;
+    }
+    .hero-desc strong { color: var(--blue); }
+    .hero-actions { display: flex; gap: 16px; flex-wrap: wrap; }
+    .btn-primary {
+      display: inline-flex; align-items: center; gap: 8px;
+      padding: 14px 32px;
+      background: linear-gradient(135deg, var(--blue), var(--purple));
+      border-radius: 50px;
+      font-weight: 600; font-size: 0.95rem; color: #fff;
+      box-shadow: 0 8px 32px rgba(0,212,255,0.35);
+      transition: all 0.3s ease; border: none; cursor: pointer;
+    }
+    .btn-primary:hover {
+      transform: translateY(-3px);
+      box-shadow: 0 12px 40px rgba(0,212,255,0.5);
+    }
+    .btn-secondary {
+      display: inline-flex; align-items: center; gap: 8px;
+      padding: 14px 32px;
+      background: transparent;
+      border: 1px solid var(--glass-border);
+      border-radius: 50px;
+      font-weight: 600; font-size: 0.95rem; color: var(--text);
+      transition: all 0.3s ease; cursor: pointer;
+      backdrop-filter: blur(10px);
+    }
+    .btn-secondary:hover {
+      border-color: var(--blue);
+      color: var(--blue);
+      background: rgba(0,212,255,0.06);
+      transform: translateY(-3px);
+    }
+    .hero-stats {
+      display: flex; gap: 32px; margin-top: 48px;
+      flex-wrap: wrap;
+    }
+    .hero-stat { text-align: left; }
+    .hero-stat .num {
+      font-family: 'Orbitron', sans-serif;
+      font-size: 1.8rem; font-weight: 700;
+      color: var(--blue);
+    }
+    .hero-stat .label {
+      font-size: 0.78rem; color: var(--text-dim);
+      text-transform: uppercase; letter-spacing: 1px;
+      margin-top: 2px;
+    }
+    .hero-stat-divider {
+      width: 1px; background: var(--glass-border);
+      align-self: stretch;
+    }
+
+    /* Hero image side */
+    .hero-visual {
+      position: relative;
+      display: flex; align-items: center; justify-content: center;
+    }
+    .hero-img-wrapper {
+      position: relative; width: 100%;
+      border-radius: 20px; overflow: hidden;
+    }
+    .hero-img-wrapper::before {
+      content: '';
+      position: absolute; inset: -2px;
+      background: linear-gradient(135deg, var(--blue), var(--purple), var(--pink));
+      border-radius: 22px; z-index: -1;
+      opacity: 0.6;
+      animation: borderRotate 6s linear infinite;
+    }
+    .hero-img-wrapper img {
+      border-radius: 18px;
+      width: 100%;
+      filter: brightness(0.95) contrast(1.05);
+    }
+    .hero-scan-line {
+      position: absolute; left: 0; right: 0;
+      height: 2px;
+      background: linear-gradient(90deg, transparent, var(--blue), transparent);
+      animation: scanDown 3s linear infinite;
+      pointer-events: none;
+      z-index: 2;
+    }
+    .hero-hud {
+      position: absolute;
+      background: rgba(4,4,15,0.85);
+      border: 1px solid var(--glass-border);
+      border-radius: 10px;
+      padding: 10px 14px;
+      backdrop-filter: blur(20px);
+      font-size: 0.72rem;
+      font-family: 'Orbitron', sans-serif;
+      color: var(--green);
+      animation: hudFloat 4s ease-in-out infinite;
+    }
+    .hero-hud.tl { top: 12px; left: 12px; }
+    .hero-hud.tr { top: 12px; right: 12px; animation-delay: -2s; }
+    .hero-hud.bl { bottom: 12px; left: 12px; animation-delay: -1s; }
+    .hero-hud.br { bottom: 12px; right: 12px; animation-delay: -3s; }
+    .hud-val { color: var(--blue); font-weight: 700; }
+
+    /* ─── TECH STRIP ──────────────────────────────────────────  */
+    .tech-strip {
+      border-top: 1px solid var(--glass-border);
+      border-bottom: 1px solid var(--glass-border);
+      padding: 20px 0;
+      overflow: hidden;
+      background: rgba(0,212,255,0.02);
+    }
+    .tech-strip-inner {
+      display: flex; align-items: center; gap: 60px;
+      animation: scrollLeft 25s linear infinite;
+      width: max-content;
+    }
+    .tech-item {
+      display: flex; align-items: center; gap: 10px;
+      font-size: 0.8rem; font-weight: 500; color: var(--text-dim);
+      letter-spacing: 1px; text-transform: uppercase; white-space: nowrap;
+    }
+    .tech-item .icon-dot {
+      width: 8px; height: 8px; border-radius: 50%;
+      background: var(--blue);
+      box-shadow: 0 0 8px var(--blue);
+    }
+
+    /* ─── FEATURES ────────────────────────────────────────────  */
+    #features { padding: 120px 0; }
+    .features-header { text-align: center; margin-bottom: 70px; }
+    .features-header .section-label { justify-content: center; }
+    .features-header .section-label::before { display: none; }
+    .features-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fill, minmax(340px, 1fr));
+      gap: 24px;
+    }
+    .feat-card {
+      background: var(--glass);
+      border: 1px solid var(--glass-border);
+      border-radius: var(--r);
+      padding: 32px;
+      transition: all 0.4s ease;
+      position: relative; overflow: hidden;
+      backdrop-filter: blur(10px);
+    }
+    .feat-card::before {
+      content: '';
+      position: absolute; top: 0; left: 0; right: 0;
+      height: 2px;
+      background: linear-gradient(90deg, transparent, var(--blue), transparent);
+      opacity: 0;
+      transition: opacity 0.4s;
+    }
+    .feat-card:hover {
+      transform: translateY(-6px);
+      border-color: rgba(0,212,255,0.4);
+      background: var(--glass-hover);
+      box-shadow: var(--glow-blue);
+    }
+    .feat-card:hover::before { opacity: 1; }
+    .feat-icon {
+      width: 54px; height: 54px;
+      border-radius: 14px;
+      display: flex; align-items: center; justify-content: center;
+      font-size: 1.5rem; margin-bottom: 20px;
+      position: relative;
+    }
+    .feat-icon.blue { background: rgba(0,212,255,0.12); border: 1px solid rgba(0,212,255,0.3); }
+    .feat-icon.purple { background: rgba(123,47,255,0.12); border: 1px solid rgba(123,47,255,0.3); }
+    .feat-icon.pink { background: rgba(255,32,144,0.12); border: 1px solid rgba(255,32,144,0.3); }
+    .feat-icon.green { background: rgba(0,255,170,0.12); border: 1px solid rgba(0,255,170,0.3); }
+    .feat-title {
+      font-family: 'Space Grotesk', sans-serif;
+      font-size: 1.15rem; font-weight: 600;
+      margin-bottom: 10px;
+    }
+    .feat-desc { color: var(--text-dim); font-size: 0.9rem; line-height: 1.7; }
+    .feat-tag {
+      display: inline-block;
+      margin-top: 16px;
+      padding: 4px 12px;
+      background: rgba(0,212,255,0.08);
+      border: 1px solid rgba(0,212,255,0.2);
+      border-radius: 50px;
+      font-size: 0.72rem; color: var(--blue);
+      font-family: 'Orbitron', sans-serif; letter-spacing: 1px;
+    }
+
+    /* ─── PRODUCT SHOWCASE ────────────────────────────────────  */
+    #product { padding: 120px 0; background: linear-gradient(180deg, var(--bg) 0%, var(--bg2) 100%); }
+    .product-inner {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 60px; align-items: center;
+    }
+    .product-img-wrap {
+      position: relative; border-radius: 20px; overflow: hidden;
+    }
+    .product-img-wrap::after {
+      content: '';
+      position: absolute; inset: 0;
+      background: linear-gradient(135deg, rgba(0,212,255,0.05), rgba(123,47,255,0.05));
+      pointer-events: none;
+    }
+    .product-img-wrap img { border-radius: 20px; width: 100%; }
+    .product-glow {
+      position: absolute;
+      width: 300px; height: 300px;
+      background: radial-gradient(circle, rgba(0,212,255,0.2), transparent 70%);
+      bottom: -100px; right: -100px;
+      filter: blur(60px); pointer-events: none;
+    }
+
+    /* ─── ARCHITECTURE ────────────────────────────────────────  */
+    #architecture {
+      padding: 120px 0;
+      background: linear-gradient(180deg, var(--bg2) 0%, var(--bg3) 50%, var(--bg2) 100%);
+    }
+    .arch-header { text-align: center; margin-bottom: 70px; }
+    .arch-header .section-label { justify-content: center; }
+    .arch-header .section-label::before { display: none; }
+    .arch-flow {
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 0;
+      flex-wrap: wrap;
+    }
+    .arch-node {
+      display: flex; flex-direction: column; align-items: center;
+      gap: 14px; text-align: center;
+    }
+    .arch-icon-wrap {
+      width: 90px; height: 90px;
+      border-radius: 20px;
+      display: flex; align-items: center; justify-content: center;
+      font-size: 2rem;
+      position: relative;
+      background: var(--glass);
+      border: 1px solid var(--glass-border);
+      transition: all 0.4s ease;
+      cursor: default;
+    }
+    .arch-icon-wrap::before {
+      content: '';
+      position: absolute; inset: -1px;
+      border-radius: 21px;
+      background: linear-gradient(135deg, var(--blue), var(--purple));
+      z-index: -1; opacity: 0;
+      transition: opacity 0.4s;
+    }
+    .arch-node:hover .arch-icon-wrap {
+      transform: translateY(-8px) scale(1.05);
+      box-shadow: var(--glow-blue);
+    }
+    .arch-node:hover .arch-icon-wrap::before { opacity: 1; }
+    .arch-label {
+      font-family: 'Orbitron', sans-serif;
+      font-size: 0.7rem; font-weight: 600;
+      color: var(--text-dim); letter-spacing: 1.5px;
+      text-transform: uppercase;
+      max-width: 100px;
+    }
+    .arch-sublabel { font-size: 0.72rem; color: rgba(136,146,176,0.6); margin-top: 2px; }
+    .arch-arrow {
+      display: flex; align-items: center; padding: 0 20px;
+      flex-shrink: 0;
+    }
+    .arch-arrow-svg { width: 60px; }
+    .arch-bottom {
+      margin-top: 50px;
+      display: flex; align-items: center; justify-content: center;
+      gap: 0;
+    }
+    .arch-feedback-line {
+      display: flex; align-items: center;
+      background: var(--glass);
+      border: 1px solid rgba(0,255,170,0.2);
+      border-radius: 50px;
+      padding: 10px 24px;
+      gap: 12px;
+      color: var(--green);
+      font-family: 'Orbitron', sans-serif;
+      font-size: 0.72rem; letter-spacing: 2px;
+    }
+    .feedback-dot {
+      width: 8px; height: 8px; border-radius: 50%;
+      background: var(--green);
+      box-shadow: 0 0 10px var(--green);
+      animation: pulse 1.5s ease-in-out infinite;
+    }
+
+    /* ─── HARDWARE DIAGRAM ────────────────────────────────────  */
+    #hardware {
+      padding: 120px 0;
+      background: linear-gradient(180deg, var(--bg2) 0%, var(--bg) 100%);
+    }
+    .hw-inner {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 60px; align-items: center;
+    }
+    .hw-image-wrap {
+      position: relative;
+      border-radius: 20px; overflow: hidden;
+    }
+    .hw-image-wrap::before {
+      content: '';
+      position: absolute; inset: -2px;
+      background: linear-gradient(135deg, var(--purple), var(--blue));
+      border-radius: 22px; z-index: -1; opacity: 0.5;
+    }
+    .hw-image-wrap img { border-radius: 18px; width: 100%; }
+    .hw-specs {
+      display: grid; grid-template-columns: 1fr 1fr; gap: 16px;
+    }
+    .spec-card {
+      background: var(--glass);
+      border: 1px solid var(--glass-border);
+      border-radius: 10px;
+      padding: 16px 18px;
+      transition: all 0.3s ease;
+    }
+    .spec-card:hover {
+      border-color: rgba(0,212,255,0.4);
+      transform: translateY(-3px);
+      box-shadow: 0 8px 24px rgba(0,212,255,0.15);
+    }
+    .spec-label {
+      font-size: 0.72rem; color: var(--text-dim);
+      text-transform: uppercase; letter-spacing: 1px; margin-bottom: 4px;
+    }
+    .spec-value {
+      font-family: 'Space Grotesk', sans-serif;
+      font-size: 0.9rem; font-weight: 600;
+      color: var(--blue);
+    }
+
+    /* ─── DASHBOARD PREVIEW ───────────────────────────────────  */
+    #dashboard {
+      padding: 120px 0;
+      background: var(--bg3);
+    }
+    .dash-header { text-align: center; margin-bottom: 70px; }
+    .dash-header .section-label { justify-content: center; }
+    .dash-header .section-label::before { display: none; }
+    .dash-outer {
+      background: var(--glass);
+      border: 1px solid var(--glass-border);
+      border-radius: 20px; overflow: hidden;
+      box-shadow: 0 0 80px rgba(0,212,255,0.08);
+    }
+    .dash-titlebar {
+      background: rgba(0,212,255,0.06);
+      border-bottom: 1px solid var(--glass-border);
+      padding: 14px 20px;
+      display: flex; align-items: center; gap: 10px;
+    }
+    .dtb-dot {
+      width: 12px; height: 12px; border-radius: 50%;
+    }
+    .dtb-dot.r { background: #ff5f57; }
+    .dtb-dot.y { background: #febc2e; }
+    .dtb-dot.g { background: #28c840; }
+    .dtb-url {
+      margin-left: 14px;
+      background: rgba(255,255,255,0.05);
+      border-radius: 6px; padding: 5px 16px;
+      font-size: 0.75rem; color: var(--text-dim);
+      font-family: 'Orbitron', sans-serif;
+    }
+    .dash-grid {
+      display: grid;
+      grid-template-columns: 260px 1fr 280px;
+      min-height: 480px;
+    }
+    .dash-sidebar {
+      border-right: 1px solid var(--glass-border);
+      padding: 20px;
+    }
+    .dash-sidebar-title {
+      font-family: 'Orbitron', sans-serif;
+      font-size: 0.7rem; color: var(--blue);
+      letter-spacing: 2px; margin-bottom: 16px;
+      padding-bottom: 10px;
+      border-bottom: 1px solid var(--glass-border);
+    }
+    .dash-log {
+      display: flex; flex-direction: column; gap: 8px;
+      font-size: 0.75rem;
+    }
+    .log-item {
+      display: flex; gap: 8px; align-items: flex-start;
+      padding: 8px 10px;
+      background: rgba(0,0,0,0.2);
+      border-radius: 6px;
+      border-left: 2px solid transparent;
+      animation: logFade 0.5s ease;
+    }
+    .log-item.person { border-color: var(--green); }
+    .log-item.car { border-color: var(--blue); }
+    .log-item.stop { border-color: var(--pink); }
+    .log-item.phone { border-color: var(--purple2); }
+    .log-time { color: var(--text-dim); white-space: nowrap; font-family: 'Orbitron', sans-serif; font-size: 0.65rem; }
+    .log-obj { color: var(--text); font-weight: 500; }
+    .log-conf { color: var(--blue); font-family: 'Orbitron', sans-serif; }
+    .dash-center {
+      padding: 20px;
+      display: flex; flex-direction: column; gap: 20px;
+    }
+    .cam-feed {
+      border-radius: 12px; overflow: hidden;
+      background: #000;
+      position: relative;
+      flex: 1;
+      min-height: 240px;
+      border: 1px solid var(--glass-border);
+    }
+    .cam-feed canvas { width: 100%; height: 100%; display: block; }
+    .cam-hud-top {
+      position: absolute; top: 12px; left: 12px; right: 12px;
+      display: flex; justify-content: space-between; align-items: center;
+    }
+    .cam-label {
+      font-family: 'Orbitron', sans-serif;
+      font-size: 0.65rem; color: var(--green);
+      background: rgba(0,0,0,0.6);
+      border-radius: 4px; padding: 3px 8px;
+    }
+    .cam-fps {
+      font-family: 'Orbitron', sans-serif;
+      font-size: 0.65rem; color: var(--blue);
+      background: rgba(0,0,0,0.6);
+      border-radius: 4px; padding: 3px 8px;
+    }
+    .cam-crosshair {
+      position: absolute;
+      width: 40px; height: 40px;
+      border: 2px solid rgba(0,212,255,0.7);
+      border-radius: 4px;
+      animation: crosshairMove 4s ease-in-out infinite;
+    }
+    .cam-crosshair::before, .cam-crosshair::after {
+      content: '';
+      position: absolute;
+      background: var(--blue);
+    }
+    .cam-crosshair::before {
+      width: 8px; height: 1px;
+      top: 50%; left: -10px; transform: translateY(-50%);
+    }
+    .cam-crosshair::after {
+      width: 1px; height: 8px;
+      left: 50%; top: -10px; transform: translateX(-50%);
+    }
+    .cam-scan-active {
+      position: absolute; bottom: 12px; left: 12px;
+      display: flex; align-items: center; gap: 6px;
+      font-family: 'Orbitron', sans-serif;
+      font-size: 0.65rem; color: var(--green);
+    }
+    .scan-blink {
+      width: 6px; height: 6px; border-radius: 50%;
+      background: var(--green);
+      animation: pulse 1s ease-in-out infinite;
+    }
+
+    .dash-stats-row {
+      display: grid; grid-template-columns: repeat(3, 1fr); gap: 12px;
+    }
+    .dash-stat-card {
+      background: rgba(0,0,0,0.25);
+      border: 1px solid var(--glass-border);
+      border-radius: 10px; padding: 14px;
+    }
+    .dsc-label { font-size: 0.7rem; color: var(--text-dim); margin-bottom: 6px; }
+    .dsc-val {
+      font-family: 'Orbitron', sans-serif;
+      font-size: 1.1rem; font-weight: 700; color: var(--blue);
+    }
+    .dsc-bar {
+      height: 3px; background: rgba(255,255,255,0.08);
+      border-radius: 2px; margin-top: 8px; overflow: hidden;
+    }
+    .dsc-bar-fill {
+      height: 100%; border-radius: 2px;
+      background: linear-gradient(90deg, var(--blue), var(--purple));
+      animation: barLoad 2s ease-in-out infinite alternate;
+    }
+
+    .dash-right {
+      border-left: 1px solid var(--glass-border);
+      padding: 20px; display: flex; flex-direction: column; gap: 16px;
+    }
+    .voice-panel {
+      background: rgba(0,0,0,0.2);
+      border: 1px solid rgba(123,47,255,0.3);
+      border-radius: 10px; padding: 14px;
+    }
+    .vp-title {
+      font-family: 'Orbitron', sans-serif;
+      font-size: 0.7rem; color: var(--purple2);
+      margin-bottom: 12px; letter-spacing: 1px;
+    }
+    .vp-wave {
+      display: flex; align-items: center; gap: 3px;
+      height: 32px; margin-bottom: 10px;
+    }
+    .vp-bar {
+      flex: 1; border-radius: 2px;
+      background: linear-gradient(180deg, var(--purple2), var(--purple));
+      animation: waveAnim 1.2s ease-in-out infinite;
+    }
+    .vp-bar:nth-child(1) { height: 30%; animation-delay: 0s; }
+    .vp-bar:nth-child(2) { height: 70%; animation-delay: 0.1s; }
+    .vp-bar:nth-child(3) { height: 45%; animation-delay: 0.2s; }
+    .vp-bar:nth-child(4) { height: 90%; animation-delay: 0.15s; }
+    .vp-bar:nth-child(5) { height: 55%; animation-delay: 0.3s; }
+    .vp-bar:nth-child(6) { height: 80%; animation-delay: 0.05s; }
+    .vp-bar:nth-child(7) { height: 35%; animation-delay: 0.25s; }
+    .vp-bar:nth-child(8) { height: 65%; animation-delay: 0.35s; }
+    .vp-bar:nth-child(9) { height: 50%; animation-delay: 0.1s; }
+    .vp-bar:nth-child(10) { height: 75%; animation-delay: 0.2s; }
+    .vp-text {
+      font-size: 0.75rem; color: var(--text-dim); line-height: 1.6;
+      font-style: italic;
+    }
+    .system-info { display: flex; flex-direction: column; gap: 10px; }
+    .si-row {
+      display: flex; justify-content: space-between;
+      align-items: center;
+      font-size: 0.78rem;
+      padding: 8px 0;
+      border-bottom: 1px solid var(--glass-border);
+    }
+    .si-row:last-child { border-bottom: none; }
+    .si-label { color: var(--text-dim); }
+    .si-val { font-family: 'Orbitron', sans-serif; color: var(--blue); font-size: 0.7rem; }
+    .si-val.ok { color: var(--green); }
+    .si-val.warn { color: #ffaa00; }
+
+    /* ─── DAY / NIGHT MODE ────────────────────────────────────  */
+    #modes {
+      padding: 120px 0;
+      background: var(--bg);
+    }
+    .modes-header { text-align: center; margin-bottom: 70px; }
+    .modes-header .section-label { justify-content: center; }
+    .modes-header .section-label::before { display: none; }
+    .modes-image-wrap {
+      position: relative; border-radius: 24px; overflow: hidden;
+      box-shadow: 0 0 60px rgba(0,212,255,0.1);
+    }
+    .modes-image-wrap img { width: 100%; border-radius: 24px; }
+    .modes-image-wrap::before {
+      content: '';
+      position: absolute; inset: -2px;
+      background: linear-gradient(135deg, var(--blue), var(--purple), var(--pink));
+      border-radius: 26px; z-index: -1; opacity: 0.4;
+    }
+
+    /* ─── CIRCUIT DIAGRAM ─────────────────────────────────────  */
+    #circuit {
+      padding: 120px 0;
+      background: var(--bg2);
+    }
+    .circuit-image-wrap {
+      border-radius: 20px; overflow: hidden;
+      position: relative;
+      box-shadow: 0 0 80px rgba(123,47,255,0.15);
+    }
+    .circuit-image-wrap::before {
+      content: '';
+      position: absolute; inset: -2px;
+      background: linear-gradient(135deg, var(--purple), var(--blue));
+      border-radius: 22px; z-index: -1; opacity: 0.4;
+    }
+    .circuit-image-wrap img { width: 100%; border-radius: 18px; }
+
+    /* ─── FUTURE SCOPE ────────────────────────────────────────  */
+    #future {
+      padding: 120px 0;
+      background: linear-gradient(180deg, var(--bg2) 0%, var(--bg) 100%);
+    }
+    .future-header { text-align: center; margin-bottom: 70px; }
+    .future-header .section-label { justify-content: center; }
+    .future-header .section-label::before { display: none; }
+    .future-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
+      gap: 24px;
+    }
+    .future-card {
+      background: var(--glass);
+      border: 1px solid var(--glass-border);
+      border-radius: var(--r);
+      padding: 32px;
+      position: relative; overflow: hidden;
+      transition: all 0.4s ease;
+    }
+    .future-card::before {
+      content: '';
+      position: absolute;
+      width: 200px; height: 200px;
+      border-radius: 50%;
+      background: var(--grad-color, radial-gradient(circle, rgba(0,212,255,0.12), transparent));
+      top: -80px; right: -80px;
+      pointer-events: none;
+    }
+    .future-card:hover {
+      transform: translateY(-8px);
+      border-color: rgba(0,212,255,0.35);
+      box-shadow: var(--glow-blue);
+    }
+    .future-num {
+      font-family: 'Orbitron', sans-serif;
+      font-size: 2.5rem; font-weight: 700;
+      color: rgba(0,212,255,0.12);
+      line-height: 1; margin-bottom: 16px;
+    }
+    .future-icon { font-size: 2rem; margin-bottom: 14px; }
+    .future-title {
+      font-family: 'Space Grotesk', sans-serif;
+      font-size: 1.1rem; font-weight: 600;
+      margin-bottom: 10px;
+    }
+    .future-desc { color: var(--text-dim); font-size: 0.88rem; line-height: 1.7; }
+    .future-badge {
+      display: inline-block;
+      margin-top: 16px; padding: 4px 12px;
+      border-radius: 50px;
+      font-size: 0.7rem; font-weight: 600;
+      text-transform: uppercase; letter-spacing: 1px;
+    }
+    .future-badge.planned { background: rgba(123,47,255,0.15); border: 1px solid rgba(123,47,255,0.3); color: var(--purple2); }
+    .future-badge.in-dev { background: rgba(0,212,255,0.12); border: 1px solid rgba(0,212,255,0.3); color: var(--blue); }
+    .future-badge.research { background: rgba(255,32,144,0.12); border: 1px solid rgba(255,32,144,0.3); color: var(--pink); }
+
+    /* ─── TEAM / ABOUT ────────────────────────────────────────  */
+    #about {
+      padding: 100px 0;
+      background: var(--bg);
+    }
+    .about-inner {
+      display: grid; grid-template-columns: 1fr 1fr;
+      gap: 60px; align-items: center;
+    }
+    .about-stats {
+      display: grid; grid-template-columns: 1fr 1fr; gap: 24px;
+      margin-top: 40px;
+    }
+    .about-stat-card {
+      background: var(--glass);
+      border: 1px solid var(--glass-border);
+      border-radius: var(--r);
+      padding: 24px;
+      text-align: center;
+      transition: all 0.3s ease;
+    }
+    .about-stat-card:hover { transform: translateY(-4px); border-color: var(--blue); }
+    .asc-num {
+      font-family: 'Orbitron', sans-serif;
+      font-size: 2.2rem; font-weight: 700;
+      background: linear-gradient(135deg, var(--blue), var(--purple));
+      -webkit-background-clip: text; -webkit-text-fill-color: transparent;
+    }
+    .asc-label { font-size: 0.8rem; color: var(--text-dim); margin-top: 4px; }
+    .vasudev-logo-text {
+      font-family: 'Orbitron', sans-serif;
+      font-size: 3.5rem; font-weight: 900;
+      background: linear-gradient(135deg, var(--blue), var(--purple), var(--pink));
+      -webkit-background-clip: text; -webkit-text-fill-color: transparent;
+      margin-bottom: 20px;
+    }
+    .vasudev-tagline {
+      font-size: 0.9rem; letter-spacing: 3px; text-transform: uppercase;
+      color: var(--text-dim);
+    }
+    .vt-logo-container {
+      display: flex; flex-direction: column;
+      align-items: flex-start; padding: 40px;
+      background: var(--glass);
+      border: 1px solid var(--glass-border);
+      border-radius: 20px;
+    }
+
+    /* ─── FOOTER ──────────────────────────────────────────────  */
+    footer {
+      background: var(--bg);
+      border-top: 1px solid var(--glass-border);
+      padding: 60px 0 30px;
+    }
+    .footer-inner {
+      display: grid;
+      grid-template-columns: 2fr 1fr 1fr 1fr;
+      gap: 50px; margin-bottom: 50px;
+    }
+    .footer-brand .name {
+      font-family: 'Orbitron', sans-serif;
+      font-size: 1.6rem; font-weight: 700;
+      background: linear-gradient(135deg, var(--blue), var(--purple));
+      -webkit-background-clip: text; -webkit-text-fill-color: transparent;
+      margin-bottom: 12px;
+    }
+    .footer-brand p {
+      color: var(--text-dim); font-size: 0.88rem; line-height: 1.7;
+      max-width: 300px;
+    }
+    .footer-col-title {
+      font-family: 'Orbitron', sans-serif;
+      font-size: 0.72rem; letter-spacing: 2px;
+      text-transform: uppercase; color: var(--blue);
+      margin-bottom: 20px;
+    }
+    .footer-links { list-style: none; display: flex; flex-direction: column; gap: 10px; }
+    .footer-links a { color: var(--text-dim); font-size: 0.88rem; transition: color 0.3s; }
+    .footer-links a:hover { color: var(--blue); }
+    .footer-bottom {
+      border-top: 1px solid var(--glass-border);
+      padding-top: 24px;
+      display: flex; justify-content: space-between; align-items: center;
+      flex-wrap: wrap; gap: 12px;
+    }
+    .footer-bottom p { color: var(--text-dim); font-size: 0.82rem; }
+    .footer-bottom .heart { color: var(--pink); }
+    .social-links { display: flex; gap: 12px; }
+    .social-link {
+      width: 38px; height: 38px;
+      border-radius: 10px;
+      border: 1px solid var(--glass-border);
+      display: flex; align-items: center; justify-content: center;
+      color: var(--text-dim); font-size: 1rem;
+      transition: all 0.3s;
+      text-decoration: none;
+    }
+    .social-link:hover {
+      border-color: var(--blue); color: var(--blue);
+      background: rgba(0,212,255,0.08);
+      transform: translateY(-2px);
+    }
+
+    /* ─── ANIMATIONS ──────────────────────────────────────────  */
+    @keyframes floatGlow {
+      0%, 100% { transform: translate(0,0) scale(1); }
+      50% { transform: translate(20px, -20px) scale(1.05); }
+    }
+    @keyframes pulse {
+      0%, 100% { opacity: 1; transform: scale(1); }
+      50% { opacity: 0.5; transform: scale(0.85); }
+    }
+    @keyframes scanDown {
+      0% { top: 0; opacity: 0; }
+      5% { opacity: 1; }
+      95% { opacity: 1; }
+      100% { top: 100%; opacity: 0; }
+    }
+    @keyframes hudFloat {
+      0%, 100% { transform: translateY(0); }
+      50% { transform: translateY(-6px); }
+    }
+    @keyframes borderRotate {
+      0% { filter: hue-rotate(0deg); }
+      100% { filter: hue-rotate(360deg); }
+    }
+    @keyframes scrollLeft {
+      0% { transform: translateX(0); }
+      100% { transform: translateX(-50%); }
+    }
+    @keyframes logFade {
+      from { opacity: 0; transform: translateX(-10px); }
+      to { opacity: 1; transform: translateX(0); }
+    }
+    @keyframes waveAnim {
+      0%, 100% { transform: scaleY(0.4); }
+      50% { transform: scaleY(1); }
+    }
+    @keyframes barLoad {
+      0% { width: 40%; }
+      100% { width: 85%; }
+    }
+    @keyframes crosshairMove {
+      0% { top: 30%; left: 20%; }
+      25% { top: 40%; left: 60%; }
+      50% { top: 20%; left: 50%; }
+      75% { top: 55%; left: 30%; }
+      100% { top: 30%; left: 20%; }
+    }
+
+    /* ─── RESPONSIVE ──────────────────────────────────────────  */
+    @media (max-width: 1024px) {
+      .dash-grid { grid-template-columns: 1fr 1fr; }
+      .dash-right { display: none; }
+      .footer-inner { grid-template-columns: 1fr 1fr; }
+    }
+    @media (max-width: 768px) {
+      .hero-inner { grid-template-columns: 1fr; }
+      .hero-visual { order: -1; }
+      .product-inner { grid-template-columns: 1fr; }
+      .hw-inner { grid-template-columns: 1fr; }
+      .about-inner { grid-template-columns: 1fr; }
+      .footer-inner { grid-template-columns: 1fr; }
+      .nav-links { display: none; }
+      .hamburger { display: flex; }
+      .dash-grid { grid-template-columns: 1fr; }
+      .dash-sidebar { display: none; }
+      .arch-flow { gap: 10px; }
+      .arch-arrow { padding: 0 8px; }
+      .arch-arrow-svg { width: 30px; }
+    }
+    @media (max-width: 480px) {
+      .hero-headline { font-size: 2.5rem; }
+      .hero-stats { gap: 16px; }
+      .features-grid { grid-template-columns: 1fr; }
+      .future-grid { grid-template-columns: 1fr; }
+      .hw-specs { grid-template-columns: 1fr; }
+    }
+
+    /* ─── MOBILE NAV ──────────────────────────────────────────  */
+    .mobile-nav {
+      display: none;
+      position: fixed; top: 70px; left: 0; right: 0;
+      background: rgba(4,4,15,0.98);
+      border-bottom: 1px solid var(--glass-border);
+      padding: 20px 5%;
+      z-index: 99; flex-direction: column; gap: 16px;
+    }
+    .mobile-nav.open { display: flex; }
+    .mobile-nav a {
+      color: var(--text-dim); font-weight: 500; font-size: 1rem;
+      padding: 8px 0; border-bottom: 1px solid var(--glass-border);
+    }
+    .mobile-nav a:hover { color: var(--blue); }
+
+    /* ─── LOADING SCREEN ──────────────────────────────────────  */
+    #loader {
+      position: fixed; inset: 0;
+      background: var(--bg);
+      z-index: 9999;
+      display: flex; flex-direction: column;
+      align-items: center; justify-content: center;
+      gap: 24px;
+      transition: opacity 0.6s ease, visibility 0.6s ease;
+    }
+    #loader.done { opacity: 0; visibility: hidden; }
+    .loader-logo {
+      font-family: 'Orbitron', sans-serif;
+      font-size: 2rem; font-weight: 700;
+      background: linear-gradient(135deg, var(--blue), var(--purple));
+      -webkit-background-clip: text; -webkit-text-fill-color: transparent;
+    }
+    .loader-bar {
+      width: 200px; height: 2px;
+      background: rgba(255,255,255,0.08);
+      border-radius: 2px; overflow: hidden;
+    }
+    .loader-fill {
+      height: 100%; border-radius: 2px;
+      background: linear-gradient(90deg, var(--blue), var(--purple));
+      animation: loaderAnim 1.8s ease-in-out forwards;
+    }
+    @keyframes loaderAnim {
+      0% { width: 0%; }
+      100% { width: 100%; }
+    }
+    .loader-text {
+      font-family: 'Orbitron', sans-serif;
+      font-size: 0.7rem; color: var(--text-dim);
+      letter-spacing: 3px; text-transform: uppercase;
+    }
+  </style>
+</head>
+<body>
+
+<!-- LOADER -->
+<div id="loader">
+  <div class="loader-logo">NayanSathi</div>
+  <div class="loader-bar"><div class="loader-fill"></div></div>
+  <div class="loader-text">Initializing AI System...</div>
+</div>
+
+<!-- CUSTOM CURSOR -->
+<div id="cursor"></div>
+<div id="cursor-ring"></div>
+
+<!-- PARTICLE CANVAS -->
+<canvas id="particle-canvas"></canvas>
+
+<!-- NAVBAR -->
+<nav id="navbar">
+  <div class="nav-logo">Nayan<span>Sathi</span></div>
+  <ul class="nav-links">
+    <li><a href="#features">Features</a></li>
+    <li><a href="#architecture">Architecture</a></li>
+    <li><a href="#hardware">Hardware</a></li>
+    <li><a href="#dashboard">Dashboard</a></li>
+    <li><a href="#future">Future</a></li>
+    <li><a href="#about" class="nav-cta">Vasudev Tech</a></li>
+  </ul>
+  <div class="hamburger" id="hamburger" onclick="toggleMobileNav()">
+    <span></span><span></span><span></span>
+  </div>
+</nav>
+<div class="mobile-nav" id="mobileNav">
+  <a href="#features" onclick="toggleMobileNav()">Features</a>
+  <a href="#architecture" onclick="toggleMobileNav()">Architecture</a>
+  <a href="#hardware" onclick="toggleMobileNav()">Hardware</a>
+  <a href="#dashboard" onclick="toggleMobileNav()">Dashboard</a>
+  <a href="#future" onclick="toggleMobileNav()">Future</a>
+  <a href="#about" onclick="toggleMobileNav()">About</a>
+</div>
+
+<!-- ═══════════════════════════════════════════════════════════ -->
+<!-- HERO -->
+<!-- ═══════════════════════════════════════════════════════════ -->
+<section id="hero">
+  <div class="hero-bg-glow hero-glow-1"></div>
+  <div class="hero-bg-glow hero-glow-2"></div>
+  <div class="hero-inner">
+    <!-- LEFT -->
+    <div class="hero-content reveal-left">
+      <div class="hero-badge">
+        <span class="dot"></span>
+        Live System — Edge AI Active
+      </div>
+      <h1 class="hero-headline">
+        <span class="nayan">Nayan</span><span class="sathi">Sathi</span>
+      </h1>
+      <p class="hero-sub">AI Smart Glasses for the Visually Impaired</p>
+      <p class="hero-desc">
+        See the World. <strong>Smarter.</strong> Live with <strong>Confidence.</strong><br><br>
+        NayanSathi is an edge-AI wearable assistant that detects objects, reads surroundings and provides real-time voice guidance — all on a <strong>Raspberry Pi 4</strong> with YOLOv11.
+      </p>
+      <div class="hero-actions">
+        <a href="#architecture" class="btn-primary">
+          ⚡ Explore System
+        </a>
+        <a href="https://github.com/vasudevtechnologies/NayanSathi-AI-Smart-Glasses" target="_blank" class="btn-secondary">
+          ⭐ GitHub Repo
+        </a>
+      </div>
+      <div class="hero-stats">
+        <div class="hero-stat">
+          <div class="num" data-count="80">0</div>
+          <div class="label">COCO Classes</div>
+        </div>
+        <div class="hero-stat-divider"></div>
+        <div class="hero-stat">
+          <div class="num" data-count="15">0</div>
+          <div class="label">FPS on Pi 4</div>
+        </div>
+        <div class="hero-stat-divider"></div>
+        <div class="hero-stat">
+          <div class="num" data-count="8">0</div>
+          <div class="label">Hrs Battery</div>
+        </div>
+        <div class="hero-stat-divider"></div>
+        <div class="hero-stat">
+          <div class="num">120g</div>
+          <div class="label">Total Weight</div>
+        </div>
+      </div>
+    </div>
+    <!-- RIGHT -->
+    <div class="hero-visual reveal-right">
+      <div class="hero-img-wrapper">
+        <div class="hero-scan-line"></div>
+        <img src="./images/hero.png" alt="NayanSathi AI Smart Glasses" id="heroImg" />
+        <div class="hero-hud tl">
+          <div>YOLO v11</div>
+          <div class="hud-val">ACTIVE ●</div>
+        </div>
+        <div class="hero-hud tr">
+          <div>FPS</div>
+          <div class="hud-val" id="fpsCnt">12.4</div>
+        </div>
+        <div class="hero-hud bl">
+          <div>BATTERY</div>
+          <div class="hud-val">87%</div>
+        </div>
+        <div class="hero-hud br">
+          <div>OBJECTS</div>
+          <div class="hud-val" id="objCnt">3</div>
+        </div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- TECH STRIP -->
+<div class="tech-strip">
+  <div class="tech-strip-inner" id="techStrip">
+    <div class="tech-item"><span class="icon-dot"></span> Raspberry Pi 4</div>
+    <div class="tech-item"><span class="icon-dot"></span> YOLOv11 ONNX</div>
+    <div class="tech-item"><span class="icon-dot"></span> ESP32-CAM</div>
+    <div class="tech-item"><span class="icon-dot"></span> ONNX Runtime</div>
+    <div class="tech-item"><span class="icon-dot"></span> Piper TTS</div>
+    <div class="tech-item"><span class="icon-dot"></span> WebSocket</div>
+    <div class="tech-item"><span class="icon-dot"></span> Bluetooth 5.0</div>
+    <div class="tech-item"><span class="icon-dot"></span> Solar Charging</div>
+    <div class="tech-item"><span class="icon-dot"></span> TensorFlow.js</div>
+    <div class="tech-item"><span class="icon-dot"></span> Node.js + Express</div>
+    <div class="tech-item"><span class="icon-dot"></span> Edge AI</div>
+    <div class="tech-item"><span class="icon-dot"></span> Raspberry Pi 4</div>
+    <div class="tech-item"><span class="icon-dot"></span> YOLOv11 ONNX</div>
+    <div class="tech-item"><span class="icon-dot"></span> ESP32-CAM</div>
+    <div class="tech-item"><span class="icon-dot"></span> ONNX Runtime</div>
+    <div class="tech-item"><span class="icon-dot"></span> Piper TTS</div>
+    <div class="tech-item"><span class="icon-dot"></span> WebSocket</div>
+    <div class="tech-item"><span class="icon-dot"></span> Bluetooth 5.0</div>
+    <div class="tech-item"><span class="icon-dot"></span> Solar Charging</div>
+    <div class="tech-item"><span class="icon-dot"></span> TensorFlow.js</div>
+    <div class="tech-item"><span class="icon-dot"></span> Node.js + Express</div>
+    <div class="tech-item"><span class="icon-dot"></span> Edge AI</div>
+  </div>
+</div>
+
+<!-- ═══════════════════════════════════════════════════════════ -->
+<!-- FEATURES -->
+<!-- ═══════════════════════════════════════════════════════════ -->
+<section id="features">
+  <div class="container">
+    <div class="features-header reveal">
+      <div class="section-label">Core Capabilities</div>
+      <h2 class="section-title">Everything You Need to <span class="grad">See the World</span></h2>
+      <p class="section-desc" style="margin:0 auto">Cutting-edge AI features packed into a lightweight wearable that empowers independence.</p>
+    </div>
+    <div class="features-grid">
+      <div class="feat-card reveal" style="transition-delay:0.05s">
+        <div class="feat-icon blue">👁️</div>
+        <h3 class="feat-title">Real-Time Object Detection</h3>
+        <p class="feat-desc">YOLOv11 ONNX model detects 80+ objects at 8–15 FPS on Raspberry Pi 4 CPU. Priority-based voice announcements for critical objects like people, cars, and traffic lights.</p>
+        <span class="feat-tag">YOLOv11 · 80 Classes</span>
+      </div>
+      <div class="feat-card reveal" style="transition-delay:0.1s">
+        <div class="feat-icon purple">🔊</div>
+        <h3 class="feat-title">Voice Assistance (TTS)</h3>
+        <p class="feat-desc">Piper TTS generates natural Indian English speech directly on the Pi. Spatial audio cues tell the user if objects are left, right, near, or far — no cloud needed.</p>
+        <span class="feat-tag">Piper TTS · Offline</span>
+      </div>
+      <div class="feat-card reveal" style="transition-delay:0.15s">
+        <div class="feat-icon blue">🤖</div>
+        <h3 class="feat-title">Raspberry Pi Edge AI</h3>
+        <p class="feat-desc">All AI processing runs locally on Raspberry Pi 4 (4GB). Zero cloud dependency, zero latency spikes, complete privacy. ONNX Runtime optimized for ARM CPU.</p>
+        <span class="feat-tag">Edge AI · 100% Private</span>
+      </div>
+      <div class="feat-card reveal" style="transition-delay:0.2s">
+        <div class="feat-icon green">📷</div>
+        <h3 class="feat-title">ESP32-CAM Streaming</h3>
+        <p class="feat-desc">ESP32-CAM with OV2640 sensor streams MJPEG video over WiFi to Raspberry Pi. UART communication for seamless frame-by-frame AI inference pipeline.</p>
+        <span class="feat-tag">MJPEG · WiFi Stream</span>
+      </div>
+      <div class="feat-card reveal" style="transition-delay:0.25s">
+        <div class="feat-icon pink">☀️</div>
+        <h3 class="feat-title">Solar Assisted Charging</h3>
+        <p class="feat-desc">5V/2W solar panel with TP4056 charge controller extends battery life during outdoor use. 5000mAh Li-Po battery provides 6–8 hours of continuous operation.</p>
+        <span class="feat-tag">Solar + USB-C Charging</span>
+      </div>
+      <div class="feat-card reveal" style="transition-delay:0.3s">
+        <div class="feat-icon purple">🎧</div>
+        <h3 class="feat-title">Bluetooth Audio</h3>
+        <p class="feat-desc">Bluetooth 5.0 connects wirelessly to earbuds for discrete audio output. Hands-free, cable-free audio delivery without compromising user mobility or safety.</p>
+        <span class="feat-tag">BT 5.0 · Wireless</span>
+      </div>
+      <div class="feat-card reveal" style="transition-delay:0.35s">
+        <div class="feat-icon blue">📊</div>
+        <h3 class="feat-title">Live Web Dashboard</h3>
+        <p class="feat-desc">Real-time monitoring dashboard accessible from any browser. View live camera feed, detection logs, system stats, SSH terminal, and voice command control panel.</p>
+        <span class="feat-tag">WebSocket · Node.js</span>
+      </div>
+      <div class="feat-card reveal" style="transition-delay:0.4s">
+        <div class="feat-icon green">🛡️</div>
+        <h3 class="feat-title">Browser AI Fallback</h3>
+        <p class="feat-desc">TensorFlow.js COCO-SSD model runs directly in browser as a fallback detection mode. Enables web-based demos without any hardware — perfect for evaluation.</p>
+        <span class="feat-tag">TF.js · Browser-Based</span>
+      </div>
+      <div class="feat-card reveal" style="transition-delay:0.45s">
+        <div class="feat-icon pink">🌐</div>
+        <h3 class="feat-title">Public Tunnel Access</h3>
+        <p class="feat-desc">Cloudflare, ngrok, and LocalTunnel support for secure remote access to the dashboard from anywhere in the world. Monitor and control the glasses remotely.</p>
+        <span class="feat-tag">Cloudflare · ngrok</span>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- ═══════════════════════════════════════════════════════════ -->
+<!-- PRODUCT SHOWCASE -->
+<!-- ═══════════════════════════════════════════════════════════ -->
+<section id="product">
+  <div class="container">
+    <div class="product-inner">
+      <div class="product-img-wrap reveal-left">
+        <img src="./images/product-showcase.png" alt="NayanSathi Product Showcase" />
+        <div class="product-glow"></div>
+      </div>
+      <div class="reveal-right">
+        <div class="section-label">Product Overview</div>
+        <h2 class="section-title">See the World.<br><span class="grad">Smarter. Safer.</span></h2>
+        <p class="section-desc">NayanSathi combines cutting-edge edge AI with a lightweight wearable form factor to deliver real-time object detection and voice guidance for visually impaired individuals.</p>
+        <div style="margin-top:32px;display:flex;flex-direction:column;gap:16px;">
+          <div style="display:flex;align-items:center;gap:14px;padding:14px;background:var(--glass);border:1px solid var(--glass-border);border-radius:10px;">
+            <span style="font-size:1.5rem">🎯</span>
+            <div>
+              <div style="font-weight:600;margin-bottom:4px">AI-Powered Object Detection</div>
+              <div style="color:var(--text-dim);font-size:0.85rem">80+ objects detected, priority-based voice alerts</div>
+            </div>
+          </div>
+          <div style="display:flex;align-items:center;gap:14px;padding:14px;background:var(--glass);border:1px solid var(--glass-border);border-radius:10px;">
+            <span style="font-size:1.5rem">🔊</span>
+            <div>
+              <div style="font-weight:600;margin-bottom:4px">Real-Time Voice Assistance</div>
+              <div style="color:var(--text-dim);font-size:0.85rem">Natural Indian English speech, spatial audio cues</div>
+            </div>
+          </div>
+          <div style="display:flex;align-items:center;gap:14px;padding:14px;background:var(--glass);border:1px solid var(--glass-border);border-radius:10px;">
+            <span style="font-size:1.5rem">⚡</span>
+            <div>
+              <div style="font-weight:600;margin-bottom:4px">Edge AI on Raspberry Pi</div>
+              <div style="color:var(--text-dim);font-size:0.85rem">100% local processing, no cloud, no privacy concerns</div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- ═══════════════════════════════════════════════════════════ -->
+<!-- SYSTEM ARCHITECTURE -->
+<!-- ═══════════════════════════════════════════════════════════ -->
+<section id="architecture">
+  <div class="container">
+    <div class="arch-header reveal">
+      <div class="section-label">System Design</div>
+      <h2 class="section-title">Intelligent <span class="grad">Architecture</span></h2>
+      <p class="section-desc" style="margin:0 auto">A seamless pipeline from camera capture to voice output — all running at the edge.</p>
+    </div>
+    <div class="arch-flow reveal">
+      <!-- Node 1 -->
+      <div class="arch-node">
+        <div class="arch-icon-wrap">🌍</div>
+        <div class="arch-label">Environment</div>
+        <div class="arch-sublabel">Real World</div>
+      </div>
+      <div class="arch-arrow">
+        <svg class="arch-arrow-svg" viewBox="0 0 60 20" fill="none">
+          <path d="M0 10 H50" stroke="url(#ag1)" stroke-width="1.5" stroke-dasharray="4 3">
+            <animate attributeName="stroke-dashoffset" from="7" to="0" dur="1s" repeatCount="indefinite"/>
+          </path>
+          <polygon points="50,5 60,10 50,15" fill="#00d4ff"/>
+          <defs>
+            <linearGradient id="ag1" x1="0" y1="0" x2="1" y2="0">
+              <stop offset="0%" stop-color="rgba(0,212,255,0.1)"/>
+              <stop offset="100%" stop-color="#00d4ff"/>
+            </linearGradient>
+          </defs>
+        </svg>
+      </div>
+      <!-- Node 2 -->
+      <div class="arch-node">
+        <div class="arch-icon-wrap">📷</div>
+        <div class="arch-label">OV2640 Camera</div>
+        <div class="arch-sublabel">2MP Sensor</div>
+      </div>
+      <div class="arch-arrow">
+        <svg class="arch-arrow-svg" viewBox="0 0 60 20" fill="none">
+          <path d="M0 10 H50" stroke="url(#ag2)" stroke-width="1.5" stroke-dasharray="4 3">
+            <animate attributeName="stroke-dashoffset" from="7" to="0" dur="1s" repeatCount="indefinite"/>
+          </path>
+          <polygon points="50,5 60,10 50,15" fill="#00d4ff"/>
+          <defs>
+            <linearGradient id="ag2" x1="0" y1="0" x2="1" y2="0">
+              <stop offset="0%" stop-color="rgba(0,212,255,0.1)"/>
+              <stop offset="100%" stop-color="#00d4ff"/>
+            </linearGradient>
+          </defs>
+        </svg>
+      </div>
+      <!-- Node 3 -->
+      <div class="arch-node">
+        <div class="arch-icon-wrap">📡</div>
+        <div class="arch-label">ESP32-CAM</div>
+        <div class="arch-sublabel">WiFi Stream</div>
+      </div>
+      <div class="arch-arrow">
+        <svg class="arch-arrow-svg" viewBox="0 0 60 20" fill="none">
+          <path d="M0 10 H50" stroke="url(#ag3)" stroke-width="1.5" stroke-dasharray="4 3">
+            <animate attributeName="stroke-dashoffset" from="7" to="0" dur="1s" repeatCount="indefinite"/>
+          </path>
+          <polygon points="50,5 60,10 50,15" fill="#7b2fff"/>
+          <defs>
+            <linearGradient id="ag3" x1="0" y1="0" x2="1" y2="0">
+              <stop offset="0%" stop-color="rgba(0,212,255,0.1)"/>
+              <stop offset="100%" stop-color="#7b2fff"/>
+            </linearGradient>
+          </defs>
+        </svg>
+      </div>
+      <!-- Node 4 -->
+      <div class="arch-node">
+        <div class="arch-icon-wrap">🍓</div>
+        <div class="arch-label">Raspberry Pi 4</div>
+        <div class="arch-sublabel">AI Processing</div>
+      </div>
+      <div class="arch-arrow">
+        <svg class="arch-arrow-svg" viewBox="0 0 60 20" fill="none">
+          <path d="M0 10 H50" stroke="url(#ag4)" stroke-width="1.5" stroke-dasharray="4 3">
+            <animate attributeName="stroke-dashoffset" from="7" to="0" dur="1s" repeatCount="indefinite"/>
+          </path>
+          <polygon points="50,5 60,10 50,15" fill="#ff2090"/>
+          <defs>
+            <linearGradient id="ag4" x1="0" y1="0" x2="1" y2="0">
+              <stop offset="0%" stop-color="rgba(123,47,255,0.1)"/>
+              <stop offset="100%" stop-color="#ff2090"/>
+            </linearGradient>
+          </defs>
+        </svg>
+      </div>
+      <!-- Node 5 -->
+      <div class="arch-node">
+        <div class="arch-icon-wrap">🧠</div>
+        <div class="arch-label">YOLOv11</div>
+        <div class="arch-sublabel">Detection</div>
+      </div>
+      <div class="arch-arrow">
+        <svg class="arch-arrow-svg" viewBox="0 0 60 20" fill="none">
+          <path d="M0 10 H50" stroke="url(#ag5)" stroke-width="1.5" stroke-dasharray="4 3">
+            <animate attributeName="stroke-dashoffset" from="7" to="0" dur="1s" repeatCount="indefinite"/>
+          </path>
+          <polygon points="50,5 60,10 50,15" fill="#00ffaa"/>
+          <defs>
+            <linearGradient id="ag5" x1="0" y1="0" x2="1" y2="0">
+              <stop offset="0%" stop-color="rgba(255,32,144,0.1)"/>
+              <stop offset="100%" stop-color="#00ffaa"/>
+            </linearGradient>
+          </defs>
+        </svg>
+      </div>
+      <!-- Node 6 -->
+      <div class="arch-node">
+        <div class="arch-icon-wrap">🎧</div>
+        <div class="arch-label">Voice Output</div>
+        <div class="arch-sublabel">BT Earbuds</div>
+      </div>
+    </div>
+    <div class="arch-bottom reveal">
+      <div class="arch-feedback-line">
+        <span class="feedback-dot"></span>
+        User Feedback / Voice Commands (Microphone Input)
+        <span class="feedback-dot"></span>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- ═══════════════════════════════════════════════════════════ -->
+<!-- HARDWARE DIAGRAM -->
+<!-- ═══════════════════════════════════════════════════════════ -->
+<section id="hardware">
+  <div class="container">
+    <div class="hw-inner">
+      <div class="hw-image-wrap reveal-left">
+        <img src="./images/hardware-diagram.png" alt="NayanSathi Hardware Diagram" />
+      </div>
+      <div class="reveal-right">
+        <div class="section-label">Hardware Specs</div>
+        <h2 class="section-title">Precision <span class="grad">Engineering</span></h2>
+        <p class="section-desc">Every component chosen for performance, power efficiency, and wearability. Modular design allows future upgrades.</p>
+        <div class="hw-specs" style="margin-top:36px;">
+          <div class="spec-card">
+            <div class="spec-label">AI Model</div>
+            <div class="spec-value">YOLOv11 ONNX</div>
+          </div>
+          <div class="spec-card">
+            <div class="spec-label">Processor</div>
+            <div class="spec-value">Raspberry Pi 4 (4GB)</div>
+          </div>
+          <div class="spec-card">
+            <div class="spec-label">Camera</div>
+            <div class="spec-value">OV2640 (2MP)</div>
+          </div>
+          <div class="spec-card">
+            <div class="spec-label">Connectivity</div>
+            <div class="spec-value">WiFi + BT 5.0</div>
+          </div>
+          <div class="spec-card">
+            <div class="spec-label">Battery</div>
+            <div class="spec-value">3.7V / 5000mAh</div>
+          </div>
+          <div class="spec-card">
+            <div class="spec-label">Solar Panel</div>
+            <div class="spec-value">5V / 2W</div>
+          </div>
+          <div class="spec-card">
+            <div class="spec-label">Operating Time</div>
+            <div class="spec-value">6 – 8 Hours</div>
+          </div>
+          <div class="spec-card">
+            <div class="spec-label">Weight</div>
+            <div class="spec-value">~120 grams</div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- ═══════════════════════════════════════════════════════════ -->
+<!-- LIVE DASHBOARD PREVIEW -->
+<!-- ═══════════════════════════════════════════════════════════ -->
+<section id="dashboard">
+  <div class="container">
+    <div class="dash-header reveal">
+      <div class="section-label">Live Interface</div>
+      <h2 class="section-title">AI <span class="grad">Command Dashboard</span></h2>
+      <p class="section-desc" style="margin:0 auto">Real-time monitoring, detection logs, camera feed, and system health — all in one view.</p>
+    </div>
+    <div class="dash-outer reveal">
+      <div class="dash-titlebar">
+        <div class="dtb-dot r"></div>
+        <div class="dtb-dot y"></div>
+        <div class="dtb-dot g"></div>
+        <div class="dtb-url">nayansathi.local:3000 — Command Center v2.1</div>
+      </div>
+      <div class="dash-grid">
+        <!-- Sidebar: Detection Logs -->
+        <div class="dash-sidebar">
+          <div class="dash-sidebar-title">Detection Log</div>
+          <div class="dash-log" id="dashLog">
+            <div class="log-item person">
+              <span class="log-time">12:01:04</span>
+              <span class="log-obj">🚶 Person</span>
+              <span class="log-conf">92%</span>
+            </div>
+            <div class="log-item car">
+              <span class="log-time">12:01:07</span>
+              <span class="log-obj">🚗 Car</span>
+              <span class="log-conf">88%</span>
+            </div>
+            <div class="log-item stop">
+              <span class="log-time">12:01:09</span>
+              <span class="log-obj">🛑 Stop Sign</span>
+              <span class="log-conf">95%</span>
+            </div>
+            <div class="log-item phone">
+              <span class="log-time">12:01:12</span>
+              <span class="log-obj">📱 Phone</span>
+              <span class="log-conf">78%</span>
+            </div>
+            <div class="log-item person">
+              <span class="log-time">12:01:15</span>
+              <span class="log-obj">🐕 Dog</span>
+              <span class="log-conf">84%</span>
+            </div>
+            <div class="log-item car">
+              <span class="log-time">12:01:18</span>
+              <span class="log-obj">🚌 Bus</span>
+              <span class="log-conf">91%</span>
+            </div>
+          </div>
+        </div>
+        <!-- Center: Camera Feed -->
+        <div class="dash-center">
+          <div class="cam-feed">
+            <canvas id="camCanvas" style="width:100%;height:100%;"></canvas>
+            <div class="cam-hud-top">
+              <div class="cam-label">● LIVE FEED</div>
+              <div class="cam-fps" id="camFps">14.2 FPS</div>
+            </div>
+            <div class="cam-crosshair" id="crosshair"></div>
+            <div class="cam-scan-active">
+              <span class="scan-blink"></span>
+              YOLOv11 SCANNING
+            </div>
+          </div>
+          <div class="dash-stats-row">
+            <div class="dash-stat-card">
+              <div class="dsc-label">CPU Usage</div>
+              <div class="dsc-val" id="cpuVal">73%</div>
+              <div class="dsc-bar"><div class="dsc-bar-fill" style="width:73%"></div></div>
+            </div>
+            <div class="dash-stat-card">
+              <div class="dsc-label">RAM Used</div>
+              <div class="dsc-val" id="ramVal">2.1 GB</div>
+              <div class="dsc-bar"><div class="dsc-bar-fill" style="width:52%"></div></div>
+            </div>
+            <div class="dash-stat-card">
+              <div class="dsc-label">Battery</div>
+              <div class="dsc-val" id="batVal">87%</div>
+              <div class="dsc-bar"><div class="dsc-bar-fill" style="width:87%;background:linear-gradient(90deg,var(--green),var(--blue))"></div></div>
+            </div>
+          </div>
+        </div>
+        <!-- Right: Voice Panel -->
+        <div class="dash-right">
+          <div class="voice-panel">
+            <div class="vp-title">▶ Voice Output Active</div>
+            <div class="vp-wave">
+              <div class="vp-bar"></div><div class="vp-bar"></div><div class="vp-bar"></div>
+              <div class="vp-bar"></div><div class="vp-bar"></div><div class="vp-bar"></div>
+              <div class="vp-bar"></div><div class="vp-bar"></div><div class="vp-bar"></div>
+              <div class="vp-bar"></div>
+            </div>
+            <div class="vp-text">"Person detected ahead. Car on your right. Stop sign in 5 meters."</div>
+          </div>
+          <div class="dash-sidebar-title" style="margin-top:4px">System Status</div>
+          <div class="system-info">
+            <div class="si-row">
+              <span class="si-label">YOLO Server</span>
+              <span class="si-val ok">● ONLINE</span>
+            </div>
+            <div class="si-row">
+              <span class="si-label">Voice Server</span>
+              <span class="si-val ok">● ONLINE</span>
+            </div>
+            <div class="si-row">
+              <span class="si-label">Camera Feed</span>
+              <span class="si-val ok">● STREAMING</span>
+            </div>
+            <div class="si-row">
+              <span class="si-label">Bluetooth</span>
+              <span class="si-val ok">● CONNECTED</span>
+            </div>
+            <div class="si-row">
+              <span class="si-label">Solar Charging</span>
+              <span class="si-val warn">◐ PARTIAL</span>
+            </div>
+            <div class="si-row">
+              <span class="si-label">Pi Temp</span>
+              <span class="si-val warn">52°C</span>
+            </div>
+            <div class="si-row">
+              <span class="si-label">Uptime</span>
+              <span class="si-val">04:23:11</span>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- ═══════════════════════════════════════════════════════════ -->
+<!-- DAY / NIGHT MODE -->
+<!-- ═══════════════════════════════════════════════════════════ -->
+<section id="modes">
+  <div class="container">
+    <div class="modes-header reveal">
+      <div class="section-label">Power System</div>
+      <h2 class="section-title">Day & Night <span class="grad">Intelligence</span></h2>
+      <p class="section-desc" style="margin:0 auto">Solar-assisted charging extends daily range. Lightweight battery for reliable night-mode operation.</p>
+    </div>
+    <div class="modes-image-wrap reveal">
+      <img src="./images/day-night.png" alt="NayanSathi Day and Night Mode" />
+    </div>
+  </div>
+</section>
+
+<!-- ═══════════════════════════════════════════════════════════ -->
+<!-- CIRCUIT DIAGRAM -->
+<!-- ═══════════════════════════════════════════════════════════ -->
+<section id="circuit">
+  <div class="container">
+    <div style="text-align:center;margin-bottom:70px" class="reveal">
+      <div class="section-label" style="justify-content:center">
+        <span style="display:none">&nbsp;</span>Wiring & Electronics
+      </div>
+      <h2 class="section-title">Complete <span class="grad">Circuit Diagram</span></h2>
+      <p class="section-desc" style="margin:0 auto">Full schematic with power flow, data connections, communication ports, and status indicators.</p>
+    </div>
+    <div class="circuit-image-wrap reveal">
+      <img src="./images/circuit-diagram.png" alt="NayanSathi Circuit Diagram" />
+    </div>
+  </div>
+</section>
+
+<!-- ═══════════════════════════════════════════════════════════ -->
+<!-- FUTURE SCOPE -->
+<!-- ═══════════════════════════════════════════════════════════ -->
+<section id="future">
+  <div class="container">
+    <div class="future-header reveal">
+      <div class="section-label">Roadmap</div>
+      <h2 class="section-title">Future <span class="grad">Capabilities</span></h2>
+      <p class="section-desc" style="margin:0 auto">The next generation of NayanSathi will be even smarter, more connected, and more helpful.</p>
+    </div>
+    <div class="future-grid">
+      <div class="future-card reveal" style="transition-delay:0.05s;--grad-color:radial-gradient(circle, rgba(0,212,255,0.12), transparent)">
+        <div class="future-num">01</div>
+        <div class="future-icon">🗺️</div>
+        <h3 class="future-title">GPS Navigation</h3>
+        <p class="future-desc">Turn-by-turn voice navigation with real-time GPS. Announce road names, distances, and directions to guide users safely through any environment.</p>
+        <span class="future-badge in-dev">In Development</span>
+      </div>
+      <div class="future-card reveal" style="transition-delay:0.1s;--grad-color:radial-gradient(circle, rgba(123,47,255,0.12), transparent)">
+        <div class="future-num">02</div>
+        <div class="future-icon">👤</div>
+        <h3 class="future-title">Face Recognition</h3>
+        <p class="future-desc">Recognize known faces and announce their names. Built with DeepFace or FaceNet running locally on the Raspberry Pi for privacy-first identification.</p>
+        <span class="future-badge planned">Planned</span>
+      </div>
+      <div class="future-card reveal" style="transition-delay:0.15s;--grad-color:radial-gradient(circle, rgba(255,32,144,0.1), transparent)">
+        <div class="future-num">03</div>
+        <div class="future-icon">📖</div>
+        <h3 class="future-title">OCR Text Reading</h3>
+        <p class="future-desc">Read signs, menus, books, currency notes, and product labels aloud using EasyOCR. Translate text on-the-fly using offline translation models.</p>
+        <span class="future-badge planned">Planned</span>
+      </div>
+      <div class="future-card reveal" style="transition-delay:0.2s;--grad-color:radial-gradient(circle, rgba(0,255,170,0.1), transparent)">
+        <div class="future-num">04</div>
+        <div class="future-icon">🆘</div>
+        <h3 class="future-title">Emergency SOS</h3>
+        <p class="future-desc">Detect falls, collisions, or dangerous situations automatically. Send GPS-tagged SOS alerts to emergency contacts via SMS or app notification instantly.</p>
+        <span class="future-badge in-dev">In Development</span>
+      </div>
+      <div class="future-card reveal" style="transition-delay:0.25s;--grad-color:radial-gradient(circle, rgba(0,212,255,0.1), transparent)">
+        <div class="future-num">05</div>
+        <div class="future-icon">📏</div>
+        <h3 class="future-title">Depth Estimation</h3>
+        <p class="future-desc">DepthAnything model provides monocular depth estimation — know exactly how far away each detected object is, enabling precise navigation assistance.</p>
+        <span class="future-badge research">Research</span>
+      </div>
+      <div class="future-card reveal" style="transition-delay:0.3s;--grad-color:radial-gradient(circle, rgba(123,47,255,0.1), transparent)">
+        <div class="future-num">06</div>
+        <div class="future-icon">🎤</div>
+        <h3 class="future-title">Voice Command AI</h3>
+        <p class="future-desc">OpenAI Whisper (tiny) for offline voice command recognition. Ask the glasses anything — "What's in front of me?" — and get an intelligent spoken response.</p>
+        <span class="future-badge planned">Planned</span>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- ═══════════════════════════════════════════════════════════ -->
+<!-- ABOUT / VASUDEV TECHNOLOGIES -->
+<!-- ═══════════════════════════════════════════════════════════ -->
+<section id="about">
+  <div class="container">
+    <div class="about-inner">
+      <div class="reveal-left">
+        <div class="vt-logo-container">
+          <div class="vasudev-logo-text">VT</div>
+          <div style="font-family:'Space Grotesk',sans-serif;font-size:1.6rem;font-weight:700;margin-bottom:8px;">Vasudev Technologies</div>
+          <div class="vasudev-tagline">Empowering Independence with AI</div>
+          <div style="margin-top:24px;padding-top:24px;border-top:1px solid var(--glass-border);font-size:0.88rem;color:var(--text-dim);line-height:1.7;">
+            A student-driven innovation lab focused on solving real-world accessibility challenges with cutting-edge embedded AI, IoT, and machine learning.
+          </div>
+          <div style="margin-top:20px;display:flex;gap:12px;flex-wrap:wrap;">
+            <a href="https://github.com/vasudevtechnologies" target="_blank" class="btn-secondary" style="padding:10px 20px;font-size:0.82rem;">
+              ⭐ GitHub
+            </a>
+            <a href="mailto:adityathakre229999@gmail.com" class="btn-primary" style="padding:10px 20px;font-size:0.82rem;">
+              📧 Contact Us
+            </a>
+          </div>
+        </div>
+      </div>
+      <div class="reveal-right">
+        <div class="section-label">Our Mission</div>
+        <h2 class="section-title">Built for <span class="grad">Real Impact</span></h2>
+        <p class="section-desc">NayanSathi was built with a singular purpose: to empower visually impaired individuals to navigate the world with confidence, independence, and dignity. Every feature is designed with accessibility at its core.</p>
+        <div class="about-stats">
+          <div class="about-stat-card">
+            <div class="asc-num">80+</div>
+            <div class="asc-label">Objects Detected</div>
+          </div>
+          <div class="about-stat-card">
+            <div class="asc-num">100%</div>
+            <div class="asc-label">Offline Capable</div>
+          </div>
+          <div class="about-stat-card">
+            <div class="asc-num">8hrs</div>
+            <div class="asc-label">Battery Life</div>
+          </div>
+          <div class="about-stat-card">
+            <div class="asc-num">120g</div>
+            <div class="asc-label">Lightweight</div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- ═══════════════════════════════════════════════════════════ -->
+<!-- FOOTER -->
+<!-- ═══════════════════════════════════════════════════════════ -->
+<footer>
+  <div class="container">
+    <div class="footer-inner">
+      <div class="footer-brand">
+        <div class="name">NayanSathi</div>
+        <p>AI Smart Glasses for the Visually Impaired. Built with ❤️ by Vasudev Technologies. Empowering independence through Edge AI and accessible technology.</p>
+        <div class="social-links" style="margin-top:20px">
+          <a class="social-link" href="https://github.com/vasudevtechnologies/NayanSathi-AI-Smart-Glasses" target="_blank" title="GitHub">⭐</a>
+          <a class="social-link" href="mailto:adityathakre229999@gmail.com" title="Email">✉️</a>
+        </div>
+      </div>
+      <div>
+        <div class="footer-col-title">Project</div>
+        <ul class="footer-links">
+          <li><a href="#features">Features</a></li>
+          <li><a href="#architecture">Architecture</a></li>
+          <li><a href="#hardware">Hardware</a></li>
+          <li><a href="#dashboard">Dashboard</a></li>
+          <li><a href="#future">Roadmap</a></li>
+        </ul>
+      </div>
+      <div>
+        <div class="footer-col-title">Technology</div>
+        <ul class="footer-links">
+          <li><a href="#">YOLOv11 ONNX</a></li>
+          <li><a href="#">Raspberry Pi 4</a></li>
+          <li><a href="#">ESP32-CAM</a></li>
+          <li><a href="#">Piper TTS</a></li>
+          <li><a href="#">Node.js + WS</a></li>
+        </ul>
+      </div>
+      <div>
+        <div class="footer-col-title">Contact</div>
+        <ul class="footer-links">
+          <li><a href="https://github.com/vasudevtechnologies" target="_blank">GitHub</a></li>
+          <li><a href="mailto:adityathakre229999@gmail.com">Email Us</a></li>
+          <li><a href="#">Documentation</a></li>
+        </ul>
+      </div>
+    </div>
+    <div class="footer-bottom">
+      <p>© 2026 <strong>Vasudev Technologies</strong>. Built with <span class="heart">♥</span> for accessibility.</p>
+      <p>NayanSathi — Empowering Independence with AI</p>
+    </div>
+  </div>
+</footer>
+
+<!-- ═══════════════════════════════════════════════════════════ -->
+<!-- JAVASCRIPT -->
+<!-- ═══════════════════════════════════════════════════════════ -->
+<script>
+/* ── LOADER ──────────────────────────────────────────────── */
+window.addEventListener('load', () => {
+  setTimeout(() => {
+    document.getElementById('loader').classList.add('done');
+  }, 1900);
+});
+
+/* ── CURSOR ──────────────────────────────────────────────── */
+const cur = document.getElementById('cursor');
+const ring = document.getElementById('cursor-ring');
+let mx = 0, my = 0, rx = 0, ry = 0;
+document.addEventListener('mousemove', e => {
+  mx = e.clientX; my = e.clientY;
+  cur.style.transform = `translate(${mx - 6}px, ${my - 6}px)`;
+});
+(function animRing() {
+  rx += (mx - rx - 18) * 0.15;
+  ry += (my - ry - 18) * 0.15;
+  ring.style.transform = `translate(${rx}px, ${ry}px)`;
+  requestAnimationFrame(animRing);
+})();
+document.querySelectorAll('a, button, .feat-card, .future-card, .spec-card').forEach(el => {
+  el.addEventListener('mouseenter', () => {
+    ring.style.width = '60px'; ring.style.height = '60px';
+    ring.style.borderColor = 'rgba(0,212,255,0.8)';
+  });
+  el.addEventListener('mouseleave', () => {
+    ring.style.width = '36px'; ring.style.height = '36px';
+    ring.style.borderColor = 'rgba(0,212,255,0.5)';
+  });
+});
+
+/* ── PARTICLE CANVAS ─────────────────────────────────────── */
+(function() {
+  const canvas = document.getElementById('particle-canvas');
+  const ctx = canvas.getContext('2d');
+  let W, H, particles = [];
+
+  function resize() {
+    W = canvas.width = window.innerWidth;
+    H = canvas.height = window.innerHeight;
+  }
+  resize();
+  window.addEventListener('resize', resize);
+
+  const NUM = 120;
+  for (let i = 0; i < NUM; i++) {
+    particles.push({
+      x: Math.random() * window.innerWidth,
+      y: Math.random() * window.innerHeight,
+      r: Math.random() * 1.5 + 0.3,
+      dx: (Math.random() - 0.5) * 0.3,
+      dy: (Math.random() - 0.5) * 0.3,
+      color: Math.random() > 0.5 ? '#00d4ff' : '#7b2fff',
+      opacity: Math.random() * 0.6 + 0.1
+    });
+  }
+
+  function draw() {
+    ctx.clearRect(0, 0, W, H);
+    particles.forEach(p => {
+      p.x += p.dx; p.y += p.dy;
+      if (p.x < 0) p.x = W;
+      if (p.x > W) p.x = 0;
+      if (p.y < 0) p.y = H;
+      if (p.y > H) p.y = 0;
+      ctx.beginPath();
+      ctx.arc(p.x, p.y, p.r, 0, Math.PI * 2);
+      ctx.fillStyle = p.color;
+      ctx.globalAlpha = p.opacity;
+      ctx.fill();
+    });
+
+    // connection lines
+    ctx.globalAlpha = 1;
+    for (let i = 0; i < particles.length; i++) {
+      for (let j = i + 1; j < particles.length; j++) {
+        const dx = particles[i].x - particles[j].x;
+        const dy = particles[i].y - particles[j].y;
+        const dist = Math.sqrt(dx*dx + dy*dy);
+        if (dist < 100) {
+          ctx.beginPath();
+          ctx.strokeStyle = 'rgba(0,212,255,' + (0.06 * (1 - dist / 100)) + ')';
+          ctx.lineWidth = 0.5;
+          ctx.moveTo(particles[i].x, particles[i].y);
+          ctx.lineTo(particles[j].x, particles[j].y);
+          ctx.stroke();
+        }
+      }
+    }
+    requestAnimationFrame(draw);
+  }
+  draw();
+})();
+
+/* ── NAVBAR SCROLL ───────────────────────────────────────── */
+const nav = document.getElementById('navbar');
+window.addEventListener('scroll', () => {
+  nav.classList.toggle('scrolled', window.scrollY > 50);
+});
+
+/* ── MOBILE NAV ──────────────────────────────────────────── */
+function toggleMobileNav() {
+  document.getElementById('mobileNav').classList.toggle('open');
+}
+
+/* ── SCROLL REVEAL ───────────────────────────────────────── */
+const reveals = document.querySelectorAll('.reveal, .reveal-left, .reveal-right');
+const observer = new IntersectionObserver((entries) => {
+  entries.forEach(e => { if (e.isIntersecting) e.target.classList.add('visible'); });
+}, { threshold: 0.12 });
+reveals.forEach(el => observer.observe(el));
+
+/* ── COUNTER ANIMATION ───────────────────────────────────── */
+function animateCounters() {
+  document.querySelectorAll('[data-count]').forEach(el => {
+    const target = +el.getAttribute('data-count');
+    let cur = 0;
+    const step = target / 60;
+    const timer = setInterval(() => {
+      cur = Math.min(cur + step, target);
+      el.textContent = Math.round(cur) + (el.closest('.hero-stat') ? '' : '');
+      if (cur >= target) clearInterval(timer);
+    }, 20);
+  });
+}
+setTimeout(animateCounters, 2200);
+
+/* ── HUD COUNTERS ────────────────────────────────────────── */
+setInterval(() => {
+  const fps = (10 + Math.random() * 7).toFixed(1);
+  document.getElementById('fpsCnt').textContent = fps;
+  const obj = Math.floor(1 + Math.random() * 5);
+  document.getElementById('objCnt').textContent = obj;
+}, 2000);
+
+/* ── CAMERA CANVAS ANIMATION ─────────────────────────────── */
+(function() {
+  const c = document.getElementById('camCanvas');
+  if (!c) return;
+  const ctx = c.getContext('2d');
+  c.width = 640; c.height = 360;
+  let frame = 0;
+  const boxes = [
+    { x: 80, y: 60, w: 120, h: 200, label: 'Person', conf: 0.92, color: '#00ffaa' },
+    { x: 350, y: 100, w: 180, h: 140, label: 'Car', conf: 0.88, color: '#00d4ff' },
+    { x: 240, y: 200, w: 80, h: 80, label: 'Phone', conf: 0.78, color: '#7b2fff' },
+  ];
+
+  function drawFrame() {
+    frame++;
+    ctx.fillStyle = '#060616';
+    ctx.fillRect(0, 0, 640, 360);
+
+    // Grid
+    ctx.strokeStyle = 'rgba(0,212,255,0.05)';
+    ctx.lineWidth = 0.5;
+    for (let x = 0; x < 640; x += 40) {
+      ctx.beginPath(); ctx.moveTo(x, 0); ctx.lineTo(x, 360); ctx.stroke();
+    }
+    for (let y = 0; y < 360; y += 40) {
+      ctx.beginPath(); ctx.moveTo(0, y); ctx.lineTo(640, y); ctx.stroke();
+    }
+
+    // Scan line
+    const sl = (frame * 2) % 360;
+    const slGrad = ctx.createLinearGradient(0, sl - 10, 0, sl + 10);
+    slGrad.addColorStop(0, 'transparent');
+    slGrad.addColorStop(0.5, 'rgba(0,212,255,0.15)');
+    slGrad.addColorStop(1, 'transparent');
+    ctx.fillStyle = slGrad;
+    ctx.fillRect(0, sl - 10, 640, 20);
+
+    // Detection boxes
+    boxes.forEach((b, i) => {
+      const wobble = Math.sin(frame * 0.02 + i) * 2;
+      const x = b.x + wobble, y = b.y + wobble;
+      ctx.strokeStyle = b.color;
+      ctx.lineWidth = 1.5;
+      ctx.shadowColor = b.color;
+      ctx.shadowBlur = 8;
+      ctx.strokeRect(x, y, b.w, b.h);
+      ctx.shadowBlur = 0;
+
+      // Corners
+      const cs = 12;
+      ctx.lineWidth = 2.5;
+      ctx.strokeStyle = b.color;
+      [[x,y],[x+b.w,y],[x,y+b.h],[x+b.w,y+b.h]].forEach(([cx,cy],ci) => {
+        ctx.beginPath();
+        if (ci===0) { ctx.moveTo(cx+cs,cy); ctx.lineTo(cx,cy); ctx.lineTo(cx,cy+cs); }
+        if (ci===1) { ctx.moveTo(cx-cs,cy); ctx.lineTo(cx,cy); ctx.lineTo(cx,cy+cs); }
+        if (ci===2) { ctx.moveTo(cx+cs,cy); ctx.lineTo(cx,cy); ctx.lineTo(cx,cy-cs); }
+        if (ci===3) { ctx.moveTo(cx-cs,cy); ctx.lineTo(cx,cy); ctx.lineTo(cx,cy-cs); }
+        ctx.stroke();
+      });
+
+      // Label
+      ctx.fillStyle = b.color;
+      ctx.fillRect(x, y - 20, b.label.length * 7 + 50, 20);
+      ctx.fillStyle = '#04040f';
+      ctx.font = 'bold 11px Orbitron, monospace';
+      ctx.fillText(`${b.label} ${Math.round(b.conf * 100)}%`, x + 4, y - 5);
+    });
+
+    requestAnimationFrame(drawFrame);
+  }
+  drawFrame();
+})();
+
+/* ── LIVE LOG UPDATER ────────────────────────────────────── */
+const logData = [
+  { cls:'person', icon:'🚶', label:'Person', time:null },
+  { cls:'car', icon:'🚗', label:'Car', time:null },
+  { cls:'stop', icon:'🛑', label:'Stop Sign', time:null },
+  { cls:'phone', icon:'📱', label:'Phone', time:null },
+  { cls:'car', icon:'🚌', label:'Bus', time:null },
+  { cls:'person', icon:'🐕', label:'Dog', time:null },
+  { cls:'person', icon:'🚴', label:'Bicycle', time:null },
+  { cls:'car', icon:'🚕', label:'Truck', time:null },
+];
+setInterval(() => {
+  const log = document.getElementById('dashLog');
+  if (!log) return;
+  const item = logData[Math.floor(Math.random() * logData.length)];
+  const now = new Date();
+  const t = `${now.getHours().toString().padStart(2,'0')}:${now.getMinutes().toString().padStart(2,'0')}:${now.getSeconds().toString().padStart(2,'0')}`;
+  const conf = (70 + Math.random() * 28).toFixed(0);
+  const div = document.createElement('div');
+  div.className = `log-item ${item.cls}`;
+  div.innerHTML = `<span class="log-time">${t}</span><span class="log-obj">${item.icon} ${item.label}</span><span class="log-conf">${conf}%</span>`;
+  log.insertBefore(div, log.firstChild);
+  if (log.children.length > 8) log.removeChild(log.lastChild);
+}, 2800);
+
+/* ── LIVE STATS ──────────────────────────────────────────── */
+setInterval(() => {
+  const cpu = 55 + Math.round(Math.random() * 30);
+  const cpuEl = document.getElementById('cpuVal');
+  const camFps = (10 + Math.random() * 6).toFixed(1);
+  const camEl = document.getElementById('camFps');
+  if (cpuEl) cpuEl.textContent = cpu + '%';
+  if (camEl) camEl.textContent = camFps + ' FPS';
+}, 3000);
+</script>
+</body>
+</html>
